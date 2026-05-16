@@ -14,7 +14,7 @@ export default function NewCasePage() {
             New Return Case
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Log a customer complaint with supporting evidence. The Gemini AI pipeline will
+            Log a customer complaint with supporting evidence. The AI pipeline will
             analyze the images, invoice, and complaint text against company policies.
           </p>
         </div>
@@ -26,7 +26,7 @@ export default function NewCasePage() {
           "1. Fill complaint details",
           "2. Attach damage photos + invoice",
           "3. Submit to create case",
-          "4. AI analyzes via Gemini 2.0 Flash",
+          "4. AI analyzes via GPT-4o",
           "5. Manager reviews & decides",
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2 whitespace-nowrap">

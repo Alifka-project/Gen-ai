@@ -66,7 +66,7 @@ export function estimatedValueAed(modelCode: string): number {
   return findProduct(modelCode)?.estimatedValueAed ?? DEFAULT_PRODUCT_VALUE_AED;
 }
 
-/** Short product context block injected into the Gemini prompt for grounding. */
+/** Short product context block injected into the AI prompt for grounding. */
 export function productContextBlock(modelCode: string): string {
   const p = findProduct(modelCode);
   if (!p) return `Product model "${modelCode}" is NOT in the company catalogue.`;

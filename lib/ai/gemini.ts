@@ -1,54 +1,65 @@
 // lib/ai/gemini.ts
-// Thin wrapper over Google Gemini multimodal Flash, JSON mode.
-// Brief §6.2.
+// Now uses OpenAI GPT-4o for multimodal analysis (JSON mode).
+// Kept the filename for minimal import changes across the codebase.
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-const apiKey = process.env.GEMINI_API_KEY;
+const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey && process.env.NODE_ENV !== "test") {
   console.warn(
-    "[gemini] GEMINI_API_KEY is not set; Gemini calls will fail at runtime."
+    "[openai] OPENAI_API_KEY is not set; AI calls will fail at runtime."
   );
 }
 
-// Brief locks "Google Gemini 2.0 Flash". 2.0-flash remains valid; allow
-// override via env so we can roll forward to 2.5-flash without code changes.
-export const FLASH_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+export const FLASH_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o";
 
-export const genAI = new GoogleGenerativeAI(apiKey ?? "");
-
-export const flashJson = genAI.getGenerativeModel({
-  model: FLASH_MODEL,
-  generationConfig: {
-    responseMimeType: "application/json",
-    temperature: 0.2,
-  },
-});
+const openai = new OpenAI({ apiKey: apiKey ?? "" });
 
 export type GeminiInlineFile = { mimeType: string; base64: string };
 
 /**
  * Single multimodal call: system instruction + user prompt + inline files.
- * Returns the raw text (which should be valid JSON when responseMimeType is set).
+ * Returns the raw text (valid JSON via response_format).
  */
 export async function analyzeMultimodal(
   systemInstruction: string,
   userPrompt: string,
   files: GeminiInlineFile[]
 ): Promise<string> {
-  const result = await flashJson.generateContent({
-    systemInstruction: { role: "system", parts: [{ text: systemInstruction }] },
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: userPrompt },
-          ...files.map((f) => ({
-            inlineData: { mimeType: f.mimeType, data: f.base64 },
-          })),
-        ],
-      },
+  const contentParts: OpenAI.ChatCompletionContentPart[] = [
+    { type: "text", text: userPrompt },
+  ];
+
+  // Add images as image_url content parts
+  for (const f of files) {
+    if (f.mimeType.startsWith("image/")) {
+      contentParts.push({
+        type: "image_url",
+        image_url: {
+          url: `data:${f.mimeType};base64,${f.base64}`,
+          detail: "high",
+        },
+      });
+    }
+    // For PDFs, include as text note (GPT-4o doesn't natively read PDF bytes)
+    if (f.mimeType === "application/pdf") {
+      contentParts.push({
+        type: "text",
+        text: "[An invoice/document PDF was uploaded. Analyze the complaint and available image evidence to assess this case.]",
+      });
+    }
+  }
+
+  const response = await openai.chat.completions.create({
+    model: FLASH_MODEL,
+    messages: [
+      { role: "system", content: systemInstruction },
+      { role: "user", content: contentParts },
     ],
+    response_format: { type: "json_object" },
+    temperature: 0.2,
+    max_tokens: 4096,
   });
-  return result.response.text();
+
+  return response.choices[0]?.message?.content ?? "{}";
 }

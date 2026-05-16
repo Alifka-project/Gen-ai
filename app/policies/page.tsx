@@ -101,11 +101,11 @@ export default async function PoliciesPage() {
             </p>
             <p className="text-xs text-blue-800 leading-relaxed">
               Each policy section is chunked and embedded using{" "}
-              <strong>gemini-embedding-001</strong> (768 dimensions) and stored in{" "}
+              <strong>text-embedding-3-small</strong> (768 dimensions) and stored in{" "}
               <strong>Neon pgvector</strong>. When a case is analyzed, the complaint
               text and product context are embedded and the top-5 most semantically
               similar policy chunks are retrieved via cosine similarity. These chunks
-              are injected into the Gemini 2.0 Flash prompt as grounding context, so
+              are injected into the GPT-4o prompt as grounding context, so
               the AI recommendation is always policy-grounded. Re-index by running{" "}
               <code className="bg-blue-200 px-1 rounded text-[11px]">pnpm index-policies</code>{" "}
               after editing the markdown files in{" "}

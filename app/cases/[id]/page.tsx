@@ -134,7 +134,7 @@ export default async function CasePage({ params }: { params: { id: string } }) {
             </div>
           </div>
           <div className="shrink-0">
-            <AnalyzeButton caseId={c.id} hasAnalysis={!!c.analysis} />
+            <AnalyzeButton caseId={c.id} hasAnalysis={!!c.analysis} status={c.status} />
           </div>
         </div>
       </Card>
@@ -146,7 +146,7 @@ export default async function CasePage({ params }: { params: { id: string } }) {
         {!c.analysis && (
           <span className="ml-2 text-amber-600 flex items-center gap-1">
             <Clock className="size-3.5" />
-            Click <strong>Run Analysis</strong> to process with Gemini AI
+            Click <strong>Run Analysis</strong> to process with AI
           </span>
         )}
       </div>
@@ -162,7 +162,7 @@ export default async function CasePage({ params }: { params: { id: string } }) {
               </p>
               <p className="text-sm text-slate-500">
                 Click <strong>Run Analysis</strong> above to trigger the Multimodal RAG pipeline.
-                Gemini 2.0 Flash will analyze the complaint text, uploaded images, invoice PDF, and
+                GPT-4o will analyze the complaint text, uploaded images, invoice PDF, and
                 top-5 matched policy chunks.
               </p>
             </div>

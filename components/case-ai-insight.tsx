@@ -61,7 +61,7 @@ export function CaseAiInsight({
   contradictions = [],
   complaintCategory,
   severity,
-  modelUsed = "gemini-2.0-flash",
+  modelUsed = "gpt-4o",
   latencyMs,
   visibleDamage,
   damageType,
@@ -154,7 +154,7 @@ export function CaseAiInsight({
               {[
                 "1. Complaint Text",
                 "2. RAG Retrieval (pgvector)",
-                "3. Multimodal Gemini 2.0 Flash",
+                "3. Multimodal GPT-4o",
                 "4. Zod Validation",
                 "5. RVS Scoring",
               ].map((step, i) => (
@@ -170,8 +170,8 @@ export function CaseAiInsight({
               ))}
             </div>
             <p className="text-[10px] text-slate-400 mt-2">
-              The complaint text and uploaded images/PDFs are embedded (gemini-embedding-001, 768 dims).
-              Top-5 policy chunks are retrieved via cosine similarity. Gemini 2.0 Flash performs
+              The complaint text and uploaded images/PDFs are embedded (text-embedding-3-small, 768 dims).
+              Top-5 policy chunks are retrieved via cosine similarity. GPT-4o performs
               multimodal reasoning and outputs structured JSON validated by Zod schema.
             </p>
           </div>
@@ -179,7 +179,7 @@ export function CaseAiInsight({
           {/* Visual Analysis */}
           {(visibleDamage !== undefined || damageType || claimImageConsistency) && (
             <div className="px-4 py-3">
-              <SectionHeader icon={<Eye className="size-3.5 text-orange-600" />} label="Visual Analysis (Gemini Vision)" />
+              <SectionHeader icon={<Eye className="size-3.5 text-orange-600" />} label="Visual Analysis (GPT-4o Vision)" />
               <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
                 <DetailBox
                   label="Visible Damage"

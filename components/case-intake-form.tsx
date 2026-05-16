@@ -186,7 +186,7 @@ export function CaseIntakeForm() {
       }
 
       // Step 3: Run AI analysis
-      setSubmitStatus("Running AI analysis (Gemini 2.0 Flash)...");
+      setSubmitStatus("Running AI analysis (GPT-4o)...");
       const analyzeRes = await fetch(`/api/cases/${id}/analyze`, { method: "POST" });
       if (analyzeRes.ok) {
         const analyzeBody = await analyzeRes.json();
@@ -444,7 +444,7 @@ export function CaseIntakeForm() {
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Evidence & Documents</h2>
               <p className="text-sm text-slate-500 mt-0.5">
-                Upload supporting evidence. The AI will analyze images and PDFs via Gemini multimodal processing.
+                Upload supporting evidence. The AI will analyze images and PDFs via GPT-4o multimodal processing.
               </p>
             </div>
 
@@ -521,7 +521,7 @@ export function CaseIntakeForm() {
               <Info className="size-4 text-blue-500 shrink-0 mt-0.5" />
               <p className="text-xs text-blue-800 leading-relaxed">
                 After submission, the system will: (1) Create the case record, (2) Upload all attached files,
-                (3) Automatically run AI analysis using <strong>Gemini 2.0 Flash</strong> multimodal pipeline
+                (3) Automatically run AI analysis using <strong>GPT-4o</strong> multimodal pipeline
                 with RAG policy retrieval (pgvector). You will be redirected to the case detail page with
                 the AI recommendation.
               </p>

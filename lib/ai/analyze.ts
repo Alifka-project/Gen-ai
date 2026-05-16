@@ -1,5 +1,5 @@
 // lib/ai/analyze.ts
-// Orchestrator: load case → retrieve policy → fetch files → call Gemini →
+// Orchestrator: load case → retrieve policy → fetch files → call GPT-4o →
 // validate with Zod (one repair retry) → compute RVS → persist AiAnalysis.
 // Brief §6.
 
@@ -105,7 +105,7 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
     productContext: productContextBlock(caseRow.productModel),
   });
 
-  // 3. Call Gemini (with one repair retry on invalid JSON).
+  // 3. Call GPT-4o (with one repair retry on invalid JSON).
   let raw = await analyzeMultimodal(SYSTEM_PROMPT, userPrompt, files);
   let parsed = safeParseJson(raw);
   let validated = parsed ? aiAnalysisSchema.safeParse(parsed) : null;
@@ -127,7 +127,7 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
         validated && !validated.success
           ? JSON.stringify(validated.error.issues)
           : "unparseable";
-      throw new Error(`gemini returned invalid output after repair: ${issues}`);
+      throw new Error(`AI returned invalid output after repair: ${issues}`);
     }
   }
 

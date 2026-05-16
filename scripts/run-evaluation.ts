@@ -193,7 +193,7 @@ async function main() {
   lines.push("# ReturnGuard AI — Evaluation Report");
   lines.push("");
   lines.push(
-    `_Generated ${new Date().toISOString()} · model: \`${FLASH_MODEL}\` · embedding: \`${process.env.GEMINI_EMBEDDING_MODEL ?? "gemini-embedding-001"}\`._`
+    `_Generated ${new Date().toISOString()} · model: \`${FLASH_MODEL}\` · embedding: \`${process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small"}\`._`
   );
   lines.push("");
   lines.push("## Aggregate metrics");

@@ -1,6 +1,6 @@
 // lib/ai/schema.ts
 // Zod schema for the AI output (proposal Appendix A; brief §6.1).
-// Every Gemini response is validated against this before being persisted.
+// Every AI response is validated against this before being persisted.
 
 import { z } from "zod";
 

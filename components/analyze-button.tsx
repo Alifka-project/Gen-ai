@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 export function AnalyzeButton({
   caseId,
   hasAnalysis,
+  status,
 }: {
   caseId: string;
   hasAnalysis: boolean;
+  status?: string;
 }) {
   const router = useRouter();
   const [running, setRunning] = useState(false);
@@ -37,9 +39,25 @@ export function AnalyzeButton({
     }
   }
 
+  const isStuck = status === "analyzing" && !running;
+  const label = running
+    ? "Analyzing..."
+    : isStuck
+    ? "Retry analysis"
+    : hasAnalysis
+    ? "Re-run analysis"
+    : "Run analysis";
+
   return (
-    <Button onClick={run} disabled={running} variant={hasAnalysis ? "outline" : "default"}>
-      {running ? "Analyzing..." : hasAnalysis ? "Re-run analysis" : "Run analysis"}
-    </Button>
+    <div className="space-y-1">
+      <Button onClick={run} disabled={running} variant={hasAnalysis ? "outline" : "default"}>
+        {label}
+      </Button>
+      {isStuck && (
+        <p className="text-[10px] text-amber-600">
+          Previous analysis failed. Click to retry.
+        </p>
+      )}
+    </div>
   );
 }

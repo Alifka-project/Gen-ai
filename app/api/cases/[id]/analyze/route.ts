@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { analyzeCase } from "@/lib/ai/analyze";
 import { recordAudit } from "@/lib/db/audit";
 
-// Allow longer execution since Gemini calls can take 10–30s.
+// Allow longer execution since AI calls can take 10–30s.
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
@@ -30,6 +30,14 @@ export async function POST(
     return NextResponse.json(result, { status: 200 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";
+    // Reset status from "analyzing" back to "new" so the user can retry
+    try {
+      const { prisma } = await import("@/lib/db/prisma");
+      await prisma.case.updateMany({
+        where: { id: params.id, status: "analyzing" },
+        data: { status: "new" },
+      });
+    } catch { /* best effort */ }
     await recordAudit({
       caseId: params.id,
       actor: "system",
