@@ -4,18 +4,24 @@
 
 import OpenAI from "openai";
 
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey && process.env.NODE_ENV !== "test") {
-  console.warn(
-    "[openai] OPENAI_API_KEY is not set; AI calls will fail at runtime."
-  );
-}
-
 export const FLASH_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o";
 
-const openai = new OpenAI({ apiKey: apiKey ?? "" });
-
 export type GeminiInlineFile = { mimeType: string; base64: string };
+
+// Lazy-init to avoid crashing during Next.js build (env vars unavailable at build time)
+let _openai: OpenAI | null = null;
+function getClient(): OpenAI {
+  if (!_openai) {
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) {
+      throw new Error(
+        "OPENAI_API_KEY is not set. Add it to .env.local or Vercel environment variables."
+      );
+    }
+    _openai = new OpenAI({ apiKey: key });
+  }
+  return _openai;
+}
 
 /**
  * Single multimodal call: system instruction + user prompt + inline files.
@@ -26,11 +32,12 @@ export async function analyzeMultimodal(
   userPrompt: string,
   files: GeminiInlineFile[]
 ): Promise<string> {
+  const openai = getClient();
+
   const contentParts: OpenAI.ChatCompletionContentPart[] = [
     { type: "text", text: userPrompt },
   ];
 
-  // Add images as image_url content parts
   for (const f of files) {
     if (f.mimeType.startsWith("image/")) {
       contentParts.push({
@@ -41,7 +48,6 @@ export async function analyzeMultimodal(
         },
       });
     }
-    // For PDFs, include as text note (GPT-4o doesn't natively read PDF bytes)
     if (f.mimeType === "application/pdf") {
       contentParts.push({
         type: "text",
