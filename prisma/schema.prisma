@@ -5,12 +5,18 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  previewFeatures = ["postgresqlExtensions", "driverAdapters"]
 }
 
 datasource db {
   provider   = "postgresql"
+  // Runtime queries use the pooled URL (pgbouncer) — required on Vercel
+  // serverless to avoid connection exhaustion.
   url        = env("DATABASE_URL")
+  // Migrations / introspection need a direct connection because pgbouncer
+  // does not support prepared statements. Vercel's Neon integration
+  // auto-injects DATABASE_URL_UNPOOLED.
+  directUrl  = env("DATABASE_URL_UNPOOLED")
   extensions = [vector]
 }
 

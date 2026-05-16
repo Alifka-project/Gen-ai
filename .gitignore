@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+
+# Claude Code local state (contains tool-call allowlist with possibly-sensitive args)
+.claude/
 /.pnp
 .pnp.js
 .yarn/install-state.gz

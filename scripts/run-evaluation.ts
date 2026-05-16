@@ -10,6 +10,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { prisma } from "../lib/db/prisma";
 import { analyzeCase } from "../lib/ai/analyze";
+import { FLASH_MODEL } from "../lib/ai/gemini";
 import { aiAnalysisSchema } from "../lib/ai/schema";
 import {
   avoidedCostPerCase,
@@ -192,7 +193,7 @@ async function main() {
   lines.push("# ReturnGuard AI — Evaluation Report");
   lines.push("");
   lines.push(
-    `_Generated ${new Date().toISOString()} · model: \`gemini-2.0-flash\` (or override via \`GEMINI_MODEL\`)._`
+    `_Generated ${new Date().toISOString()} · model: \`${FLASH_MODEL}\` · embedding: \`${process.env.GEMINI_EMBEDDING_MODEL ?? "gemini-embedding-001"}\`._`
   );
   lines.push("");
   lines.push("## Aggregate metrics");
