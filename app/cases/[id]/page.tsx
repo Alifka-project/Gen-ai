@@ -6,7 +6,7 @@ import { ScoreCard } from "@/components/score-card";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 import { AnalyzeButton } from "@/components/analyze-button";
 import { DecisionPanel } from "@/components/decision-panel";
-import { computeRVS } from "@/lib/ai/score";
+import { computeRVS, thresholdSanityCheck } from "@/lib/ai/score";
 import { aiAnalysisSchema } from "@/lib/ai/schema";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,7 @@ export default async function CasePage({ params }: { params: { id: string } }) {
   }
   const validAnalysis = analysisJson?.success ? analysisJson.data : null;
   const rvsRecomputed = validAnalysis ? computeRVS(validAnalysis) : undefined;
+  const thresholdWarning = validAnalysis ? thresholdSanityCheck(validAnalysis) : null;
 
   const retrievedChunks =
     (c.analysis?.retrievedChunks as Array<{
@@ -76,6 +77,7 @@ export default async function CasePage({ params }: { params: { id: string } }) {
             score={c.analysis.replacementValidityScore}
             recommendation={c.analysis.recommendation}
             rvsRecomputed={rvsRecomputed}
+            thresholdWarning={thresholdWarning}
           />
 
           {validAnalysis.contradictions.length > 0 ? (
@@ -96,6 +98,56 @@ export default async function CasePage({ params }: { params: { id: string } }) {
               <strong>Manager summary:</strong> {validAnalysis.manager_summary}
             </p>
           </Card>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="p-4 border-green-200 bg-green-50/50">
+              <h3 className="text-sm font-semibold text-green-900 mb-2">
+                Verified facts ({validAnalysis.verified_facts.length})
+              </h3>
+              {validAnalysis.verified_facts.length === 0 ? (
+                <p className="text-xs text-green-900/70 italic">
+                  The AI did not list any verified facts. This usually means the
+                  evidence was insufficient to confirm anything beyond the complaint text.
+                </p>
+              ) : (
+                <ul className="text-sm text-green-900 list-disc pl-5 space-y-1">
+                  {validAnalysis.verified_facts.map((f, i) => (
+                    <li key={i}>{f}</li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+            <Card className="p-4 border-amber-200 bg-amber-50/50">
+              <h3 className="text-sm font-semibold text-amber-900 mb-2">
+                Uncertainties ({validAnalysis.uncertainties.length})
+              </h3>
+              {validAnalysis.uncertainties.length === 0 ? (
+                <p className="text-xs text-amber-900/70 italic">
+                  The AI did not list any uncertainties. Spot-check the
+                  recommendation manually if it is high-impact.
+                </p>
+              ) : (
+                <ul className="text-sm text-amber-900 list-disc pl-5 space-y-1">
+                  {validAnalysis.uncertainties.map((u, i) => (
+                    <li key={i}>{u}</li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
+
+          {validAnalysis.complaint_analysis.missing_evidence.length > 0 ? (
+            <Card className="p-4 border-blue-200 bg-blue-50/50">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                Missing evidence to collect
+              </h3>
+              <ul className="text-sm text-blue-900 list-disc pl-5 space-y-1">
+                {validAnalysis.complaint_analysis.missing_evidence.map((m, i) => (
+                  <li key={i}>{m}</li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
 
           <DashboardTabs
             complaintText={c.complaintText}

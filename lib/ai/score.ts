@@ -48,3 +48,59 @@ export function computeRVS(e: AiAnalysisJson): number {
 export function rvsDelta(e: AiAnalysisJson): number {
   return Math.abs(e.replacement_validity_score - computeRVS(e));
 }
+
+// Proposal §12.2 — the per-band recommendations the score is expected to map to.
+type ExpectedBand = {
+  scoreRange: [number, number];
+  expected: RecommendedAction[];
+  label: string;
+};
+
+const BANDS: ExpectedBand[] = [
+  {
+    scoreRange: [0, 30],
+    expected: ["reject_request", "request_more_evidence"],
+    label: "0-30: Reject or request evidence",
+  },
+  {
+    scoreRange: [31, 50],
+    expected: ["request_more_evidence", "remote_troubleshooting"],
+    label: "31-50: Request more evidence",
+  },
+  {
+    scoreRange: [51, 70],
+    expected: ["remote_troubleshooting", "send_technician"],
+    label: "51-70: Remote troubleshooting or technician inspection",
+  },
+  {
+    scoreRange: [71, 85],
+    expected: ["escalate_manager", "approve_replacement"],
+    label: "71-85: Escalate to manager for likely approval",
+  },
+  {
+    scoreRange: [86, 100],
+    expected: ["approve_replacement", "escalate_manager"],
+    label: "86-100: Recommend replacement approval",
+  },
+];
+
+function bandForScore(score: number): ExpectedBand {
+  return (
+    BANDS.find((b) => score >= b.scoreRange[0] && score <= b.scoreRange[1]) ??
+    BANDS[2]
+  );
+}
+
+/**
+ * Compare the AI's recommendation against the proposal's score→action band
+ * (§12.2). Returns null when they're consistent, or a human-readable note
+ * when they diverge (e.g. score 90 but action = reject_request).
+ *
+ * This is advisory — the AI may still be right (contradictions, policy
+ * overrides), so we surface it as a flag, not an error.
+ */
+export function thresholdSanityCheck(e: AiAnalysisJson): string | null {
+  const band = bandForScore(e.replacement_validity_score);
+  if (band.expected.includes(e.recommended_action)) return null;
+  return `Score ${e.replacement_validity_score} sits in the "${band.label}" band, but the AI recommended "${e.recommended_action}". Review the contradictions/policy citations before deciding.`;
+}

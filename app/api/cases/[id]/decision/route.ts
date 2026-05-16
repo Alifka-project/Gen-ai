@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { recordAudit } from "@/lib/db/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,16 @@ export async function POST(
   await prisma.case.update({
     where: { id: params.id },
     data: { status: "decided" },
+  });
+
+  await recordAudit({
+    caseId: params.id,
+    actor: "manager",
+    action: "decision_recorded",
+    details: {
+      decision: parsed.data.decision,
+      hasNote: !!parsed.data.managerNote,
+    },
   });
 
   return NextResponse.json(

@@ -76,3 +76,18 @@ model ManagerDecision {
   managerNote String?  @db.Text
   decidedAt   DateTime @default(now())
 }
+
+// Lightweight audit trail (proposal §14.1 / §21.2).
+// Records every action that mutates a case or its analysis so the manager
+// review can be reproduced from logs.
+model AuditLog {
+  id        String   @id @default(cuid())
+  caseId    String?
+  actor     String   // "customer_service" | "manager" | "system"
+  action    String   // "case_created" | "document_uploaded" | "analysis_run" | "decision_recorded" | "policies_reindexed"
+  details   Json?    // arbitrary context (latency, file count, recommendation, etc.)
+  createdAt DateTime @default(now())
+
+  @@index([caseId])
+  @@index([action])
+}

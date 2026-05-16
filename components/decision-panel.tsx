@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { RecommendationBadge } from "@/components/recommendation-badge";
+import { getRole, type Role } from "@/components/role-switcher";
+
+// Per Replacement Policy §3.1 Approval Matrix:
+// approve + reject are manager-only; the rest can be initiated by CS staff.
+const MANAGER_ONLY = new Set(["approve", "reject"]);
 
 const DECISIONS: { value: string; label: string; variant: "default" | "destructive" | "outline" | "secondary" }[] = [
   { value: "approve", label: "Approve", variant: "default" },
@@ -30,6 +35,14 @@ export function DecisionPanel({
   const [decision, setDecision] = useState<string | null>(currentDecision);
   const [note, setNote] = useState<string>(currentNote ?? "");
   const [saving, setSaving] = useState(false);
+  const [role, setRole] = useState<Role>("customer_service");
+
+  useEffect(() => {
+    setRole(getRole());
+    const onRoleChange = () => setRole(getRole());
+    window.addEventListener("returnguard:role", onRoleChange);
+    return () => window.removeEventListener("returnguard:role", onRoleChange);
+  }, []);
 
   async function submit() {
     if (!decision) {
@@ -74,17 +87,31 @@ export function DecisionPanel({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {DECISIONS.map((d) => (
-          <Button
-            key={d.value}
-            variant={decision === d.value ? "default" : d.variant}
-            onClick={() => setDecision(d.value)}
-            type="button"
-          >
-            {d.label}
-          </Button>
-        ))}
+        {DECISIONS.map((d) => {
+          const disabled = role !== "manager" && MANAGER_ONLY.has(d.value);
+          return (
+            <Button
+              key={d.value}
+              variant={decision === d.value ? "default" : d.variant}
+              onClick={() => setDecision(d.value)}
+              type="button"
+              disabled={disabled}
+              title={disabled ? "Manager role required (switch role in the header)." : undefined}
+            >
+              {d.label}
+              {disabled ? " (manager only)" : ""}
+            </Button>
+          );
+        })}
       </div>
+
+      {role !== "manager" ? (
+        <p className="text-xs text-muted-foreground">
+          You are acting as <strong>customer service</strong>. Approve / Reject
+          require the manager role per Replacement Policy §3.1. Switch role in
+          the header to unlock them.
+        </p>
+      ) : null}
 
       <div>
         <label className="text-sm font-medium">Manager note (optional)</label>
@@ -97,7 +124,14 @@ export function DecisionPanel({
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={submit} disabled={saving || !decision}>
+        <Button
+          onClick={submit}
+          disabled={
+            saving ||
+            !decision ||
+            (role !== "manager" && MANAGER_ONLY.has(decision ?? ""))
+          }
+        >
           {saving ? "Saving..." : currentDecision ? "Update decision" : "Submit decision"}
         </Button>
       </div>

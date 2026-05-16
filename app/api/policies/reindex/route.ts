@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { indexAllPolicies } from "@/lib/ai/index-policies";
+import { recordAudit } from "@/lib/db/audit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -7,6 +8,11 @@ export const dynamic = "force-dynamic";
 export async function POST() {
   try {
     const result = await indexAllPolicies();
+    await recordAudit({
+      actor: "system",
+      action: "policies_reindexed",
+      details: result,
+    });
     return NextResponse.json(
       {
         filesProcessed: result.filesProcessed,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { recordAudit } from "@/lib/db/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,15 @@ export async function POST(req: Request) {
       serialNumber: parsed.data.serialNumber ?? null,
       complaintText: parsed.data.complaintText,
       requestedAction: parsed.data.requestedAction,
+    },
+  });
+  await recordAudit({
+    caseId: created.id,
+    actor: "customer_service",
+    action: "case_created",
+    details: {
+      productModel: created.productModel,
+      requestedAction: created.requestedAction,
     },
   });
   return NextResponse.json({ id: created.id }, { status: 201 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RoleSwitcher } from "@/components/role-switcher";
 
 const NAV = [
   { href: "/", label: "Cases" },
@@ -15,17 +16,22 @@ export function Header() {
           <span className="inline-block size-2 rounded-full bg-green-500" />
           ReturnGuard AI
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="px-3 py-1.5 rounded-md hover:bg-muted text-foreground/80 hover:text-foreground transition-colors"
-            >
-              {n.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-1 text-sm">
+            {NAV.map((n) => (
+              <Link
+                key={n.href}
+                href={n.href}
+                className="px-3 py-1.5 rounded-md hover:bg-muted text-foreground/80 hover:text-foreground transition-colors"
+              >
+                {n.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="border-l pl-3">
+            <RoleSwitcher />
+          </div>
+        </div>
       </div>
     </header>
   );

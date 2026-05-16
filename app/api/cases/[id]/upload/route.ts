@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/db/prisma";
+import { recordAudit } from "@/lib/db/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,18 @@ export async function POST(
       docType,
       blobUrl: blob.url,
       mimeType: file.type,
+    },
+  });
+
+  await recordAudit({
+    caseId: params.id,
+    actor: "customer_service",
+    action: "document_uploaded",
+    details: {
+      documentId: doc.id,
+      docType: doc.docType,
+      mimeType: doc.mimeType,
+      bytes: file.size,
     },
   });
 
