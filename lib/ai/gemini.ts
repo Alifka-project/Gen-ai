@@ -56,16 +56,22 @@ export async function analyzeMultimodal(
     }
   }
 
-  const response = await openai.chat.completions.create({
-    model: FLASH_MODEL,
-    messages: [
-      { role: "system", content: systemInstruction },
-      { role: "user", content: contentParts },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.2,
-    max_tokens: 4096,
-  });
+  try {
+    const response = await openai.chat.completions.create({
+      model: FLASH_MODEL,
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: contentParts },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.2,
+      max_tokens: 4096,
+    });
 
-  return response.choices[0]?.message?.content ?? "{}";
+    return response.choices[0]?.message?.content ?? "{}";
+  } catch (err) {
+    throw new Error(
+      `Chat completion failed (model=${FLASH_MODEL}): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }

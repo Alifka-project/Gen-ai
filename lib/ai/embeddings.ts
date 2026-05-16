@@ -27,13 +27,19 @@ export async function embed(texts: string[]): Promise<number[][]> {
 
   const openai = new OpenAI({ apiKey: requireKey() });
 
-  const response = await openai.embeddings.create({
-    model: EMBEDDING_MODEL,
-    input: texts,
-    dimensions: EMBEDDING_DIMS,
-  });
+  try {
+    const response = await openai.embeddings.create({
+      model: EMBEDDING_MODEL,
+      input: texts,
+      dimensions: EMBEDDING_DIMS,
+    });
 
-  // Sort by index to preserve input order
-  const sorted = response.data.sort((a, b) => a.index - b.index);
-  return sorted.map((item) => item.embedding);
+    // Sort by index to preserve input order
+    const sorted = response.data.sort((a, b) => a.index - b.index);
+    return sorted.map((item) => item.embedding);
+  } catch (err) {
+    throw new Error(
+      `Embedding failed (model=${EMBEDDING_MODEL}): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }
