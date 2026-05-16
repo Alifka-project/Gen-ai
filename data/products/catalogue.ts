@@ -30,6 +30,8 @@ export interface CatalogueProduct {
   catalogueYear: number;
   estimatedValueAed: number;
   highlightFeatures: string[];
+  /** Filename under /public/products/ (jpg). Undefined = use SVG fallback icon. */
+  imageFile?: string;
 }
 
 export const CATALOGUE: CatalogueProduct[] = [
@@ -44,6 +46,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2025,
     estimatedValueAed: 2800,
     highlightFeatures: ["AntiVibration", "EcoSilence Drive", "SpeedPerfect", "Super Quick 15/30"],
+    imageFile: "WGG434E0ID.jpg",
   },
   {
     brand: "Bosch",
@@ -55,6 +58,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2025,
     estimatedValueAed: 3500,
     highlightFeatures: ["AntiVibration", "Allergy Plus", "AntiStain", "Silent Wash"],
+    imageFile: "WGG444E0ID.jpg",
   },
   {
     brand: "Bosch",
@@ -66,6 +70,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2025,
     estimatedValueAed: 4200,
     highlightFeatures: ["AntiVibration", "TurboPerfect", "Hygiene", "Touch Control Panel"],
+    imageFile: "WGG454E0ID.jpg",
   },
   {
     brand: "Bosch",
@@ -77,6 +82,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2025,
     estimatedValueAed: 4500,
     highlightFeatures: ["Reload Function", "AntiVibration", "TurboPerfect"],
+    imageFile: "WGG454E1ID.jpg",
   },
   {
     brand: "Bosch",
@@ -88,6 +94,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2025,
     estimatedValueAed: 5200,
     highlightFeatures: ["i-DOS auto-dosing", "ActiveWater Plus", "Reload Function"],
+    imageFile: "WGG454A0ID.jpg",
   },
   {
     brand: "Bosch",
@@ -99,6 +106,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2025,
     estimatedValueAed: 4000,
     highlightFeatures: ["Heat Pump", "AutoDry", "SensitiveDrying", "EasyClean filter"],
+    imageFile: "WQG24200ID.jpg",
   },
   {
     brand: "Bosch",
@@ -110,6 +118,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2025,
     estimatedValueAed: 6000,
     highlightFeatures: ["Wash & Dry 60'", "AutoDry", "Self Cleaning", "Hygiene Care"],
+    imageFile: "WNA264U9ID.jpg",
   },
 
   // ────────────────────────── SAMSUNG ──────────────────────────
@@ -124,6 +133,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 5800,
     highlightFeatures: ["AI Q-Rator", "AddWash", "Hygiene Steam", "59 min Wash + Dry"],
+    imageFile: "WD10N641R2X_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -135,6 +145,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 4500,
     highlightFeatures: ["AI Q-Rator", "Hygiene Steam", "Super Eco Wash", "Smart Check"],
+    imageFile: "WW10N641RBX_TL.jpg",
   },
 
   // AddWash
@@ -148,6 +159,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 3800,
     highlightFeatures: ["Add Door", "EcoBubble", "Hygiene Steam", "Bubble Soak"],
+    imageFile: "WW91K54E0UX_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -159,6 +171,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 3400,
     highlightFeatures: ["Add Door", "EcoBubble", "Hygiene Steam"],
+    imageFile: "WW81K54E0WW_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -170,6 +183,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 3000,
     highlightFeatures: ["Add Door", "EcoBubble"],
+    imageFile: "WW70K54E0YW_TL.jpg",
   },
 
   // EcoBubble
@@ -183,6 +197,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 4800,
     highlightFeatures: ["EcoBubble", "Hygiene Steam", "Diamond Drum"],
+    imageFile: "WD90K6410OX_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -194,6 +209,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 2900,
     highlightFeatures: ["EcoBubble", "Diamond Drum", "Hygiene Steam"],
+    imageFile: "WW81J54E0IW_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -205,6 +221,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 2500,
     highlightFeatures: ["EcoBubble", "Diamond Drum", "Smart Check"],
+    imageFile: "WW71J42E0BX_TL.jpg",
   },
 
   // Diamond Drum
@@ -218,6 +235,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 2700,
     highlightFeatures: ["Diamond Drum", "Hygiene Steam", "Quick Wash"],
+    imageFile: "WW81U44G0IW_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -229,6 +247,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 2300,
     highlightFeatures: ["Diamond Drum", "Ceramic Heater"],
+    imageFile: "WW71J42G0KW_TL.jpg",
   },
 
   // ActivWash+ (Top Load with built-in sink)
@@ -241,6 +260,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 3600,
     highlightFeatures: ["Built-in Sink", "Wobble STS", "Magic Dispenser", "12yr motor warranty"],
+    imageFile: "WA16N6781CV.jpg",
   },
   {
     brand: "Samsung",
@@ -251,6 +271,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 2800,
     highlightFeatures: ["Built-in Sink", "Wobble STS", "Diamond Drum"],
+    imageFile: "WA11J5751SP.jpg",
   },
   {
     brand: "Samsung",
@@ -261,6 +282,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 1900,
     highlightFeatures: ["Built-in Sink", "Wobble", "Magic Filter"],
+    imageFile: "WA75N4571FE_TL.jpg",
   },
 
   // Wobble (Top Load)
@@ -273,6 +295,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 2400,
     highlightFeatures: ["Wobble", "Diamond Drum", "Magic Filter"],
+    imageFile: "WA10T5260BV_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -283,6 +306,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 2200,
     highlightFeatures: ["Wobble", "Diamond Drum"],
+    imageFile: "WA90T5260BY_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -293,6 +317,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 1700,
     highlightFeatures: ["Wobble", "Diamond Drum"],
+    imageFile: "WA70T4262BS_TL.jpg",
   },
 
   // Center Jet (Top Load)
@@ -305,6 +330,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 1300,
     highlightFeatures: ["Center Jet Pulsator", "Magic Filter", "Air Turbo"],
+    imageFile: "WA65M4206HV.jpg",
   },
   {
     brand: "Samsung",
@@ -315,6 +341,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 1200,
     highlightFeatures: ["Center Jet Pulsator", "Diamond Drum"],
+    imageFile: "WA60M4101HY.jpg",
   },
 
   // Semi Automatic
@@ -327,6 +354,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 950,
     highlightFeatures: ["Hexa Storm Pulsator", "Air Turbo", "Magic Filter"],
+    imageFile: "WT85R4200RR_TL.jpg",
   },
   {
     brand: "Samsung",
@@ -337,6 +365,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     catalogueYear: 2021,
     estimatedValueAed: 850,
     highlightFeatures: ["Double Storm Pulsator", "Magic Filter", "Caster wheels"],
+    imageFile: "WT75M3200HB_TL.jpg",
   },
 ];
 

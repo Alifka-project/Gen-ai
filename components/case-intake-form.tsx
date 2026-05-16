@@ -25,7 +25,6 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CATALOGUE, groupByBrand } from "@/lib/catalogue";
-import { ProductIcon } from "@/components/product-icon";
 import type { CatalogueProduct, ProductBrand } from "@/data/products/catalogue";
 
 const CATALOGUE_CODES = new Set(CATALOGUE.map((p) => p.modelCode));
@@ -277,11 +276,20 @@ export function CaseIntakeForm() {
                       {...register("productModel")}
                       className="sr-only"
                     />
-                    <ProductIcon
-                      category={product.category}
-                      brand={product.brand}
-                      size={48}
-                    />
+                    <div className="shrink-0 w-12 h-12 flex items-center justify-center rounded bg-slate-50 overflow-hidden">
+                      {product.imageFile ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/products/${product.imageFile}`}
+                          alt={product.modelCode}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-[10px] text-slate-400 text-center leading-tight px-1">
+                          {product.brand}
+                        </span>
+                      )}
+                    </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-slate-900 font-mono">
                         {product.modelCode}
@@ -310,11 +318,18 @@ export function CaseIntakeForm() {
           {/* Selected Product Summary */}
           {selectedProduct && (
             <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 flex items-start gap-3">
-              <ProductIcon
-                category={selectedProduct.category}
-                brand={selectedProduct.brand}
-                size={56}
-              />
+              <div className="shrink-0 w-14 h-14 flex items-center justify-center rounded bg-white border border-slate-200 overflow-hidden">
+                {selectedProduct.imageFile ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/products/${selectedProduct.imageFile}`}
+                    alt={selectedProduct.modelCode}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-xs text-slate-400">{selectedProduct.brand}</span>
+                )}
+              </div>
               <div>
                 <p className="text-sm font-bold text-slate-900">
                   {selectedProduct.brand} {selectedProduct.modelCode}
