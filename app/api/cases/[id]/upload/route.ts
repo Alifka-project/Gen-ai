@@ -20,6 +20,8 @@ const ALLOWED_DOC_TYPES = new Set([
   "delivery_note",
   "warranty",
   "return_request",
+  "damage_photo",
+  "other",
 ]);
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB

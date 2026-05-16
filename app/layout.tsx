@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { GovernanceBanner } from "@/components/governance-banner";
-import { Header } from "@/components/header";
+import { Sidebar } from "@/components/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = localFont({
@@ -27,11 +27,26 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
-        <GovernanceBanner />
-        <Header />
-        <main className="flex-1 container mx-auto px-4 py-6">{children}</main>
-        <Toaster richColors closeButton />
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
+      >
+        <div className="flex flex-col min-h-screen">
+          {/* Governance banner spans full width */}
+          <GovernanceBanner />
+
+          {/* Body: sidebar + main */}
+          <div className="flex flex-1 min-h-0">
+            <Sidebar />
+
+            {/* Main content area */}
+            <div className="flex flex-1 flex-col min-w-0">
+              <main className="flex-1 p-6 lg:p-8 max-w-screen-2xl w-full">
+                {children}
+              </main>
+            </div>
+          </div>
+        </div>
+        <Toaster richColors closeButton position="top-right" />
       </body>
     </html>
   );
