@@ -1,0 +1,78 @@
+// ReturnGuard AI — Prisma schema (brief §5)
+// Run `pnpm prisma migrate dev --name init` after setting DATABASE_URL.
+// pgvector extension must be enabled in Neon first:
+//   CREATE EXTENSION IF NOT EXISTS vector;
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+model Case {
+  id              String   @id @default(cuid())
+  customerName    String
+  productModel    String
+  serialNumber    String?
+  complaintText   String   @db.Text
+  requestedAction String   // replacement | refund | repair
+  status          String   @default("new") // new | analyzing | analyzed | decided
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  documents       Document[]
+  analysis        AiAnalysis?
+  decision        ManagerDecision?
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  caseId        String
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  docType       String   // image | invoice | delivery_note | warranty | return_request
+  blobUrl       String
+  mimeType      String
+  extractedJson Json?
+  createdAt     DateTime @default(now())
+
+  @@index([caseId])
+}
+
+model PolicyChunk {
+  id          String                       @id @default(cuid())
+  policyName  String   // "Return Policy"
+  sectionRef  String   // "3.2"
+  ruleType    String?  // "technician_required" | "open_box_depreciation" | ...
+  chunkText   String                       @db.Text
+  embedding   Unsupported("vector(768)")?
+  createdAt   DateTime @default(now())
+
+  @@index([policyName])
+}
+
+model AiAnalysis {
+  id                       String   @id @default(cuid())
+  caseId                   String   @unique
+  case                     Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  replacementValidityScore Int
+  recommendation           String
+  retrievedChunks          Json     // [{chunkId, policyName, sectionRef, score}]
+  explanationJson          Json     // full appendix-A object
+  rawOutput                String   @db.Text
+  modelUsed                String   // "gemini-2.0-flash"
+  latencyMs                Int
+  createdAt                DateTime @default(now())
+}
+
+model ManagerDecision {
+  id          String   @id @default(cuid())
+  caseId      String   @unique
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  decision    String   // approve | reject | request_evidence | remote_troubleshoot | send_technician | escalate
+  managerNote String?  @db.Text
+  decidedAt   DateTime @default(now())
+}
