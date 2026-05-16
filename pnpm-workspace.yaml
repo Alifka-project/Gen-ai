@@ -1,7 +1,13 @@
+# Single-package "workspace" — kept only so pnpm 11's allowBuilds gate accepts
+# the postinstall scripts for Prisma + esbuild without manual approval prompts.
+# Vercel build also uses this; the explicit `packages` field stops Vercel from
+# treating the repo as a multi-package monorepo and missing the Next.js app.
+
+packages:
+  - "."
+
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
   esbuild: true
-  msw: false
   prisma: true
-  unrs-resolver: false
