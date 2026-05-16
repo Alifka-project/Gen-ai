@@ -351,7 +351,33 @@ export default function AiPipelinePage() {
             </div>
           </Card>
 
-          {/* ── 5. Defect Detection Illustration ── */}
+          {/* ── 5. Zod Output Schema ── */}
+          <Card className="p-5 bg-white shadow-sm border-slate-200">
+            <SectionHeader icon={<Shield className="size-4 text-blue-600" />} label="Zod Output Schema — Validated AI Output Structure" />
+            <p className="text-xs text-slate-500 mb-4">
+              Every Gemini response is validated against this strict Zod schema before being persisted.
+              Invalid outputs trigger one automatic repair retry with additional instructions.
+            </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {ZOD_SCHEMA_FIELDS.map((group) => (
+                <div key={group.section} className="rounded-lg border border-slate-200 overflow-hidden">
+                  <div className={`px-3 py-2 ${group.bg} border-b border-slate-200`}>
+                    <p className="text-[11px] font-bold text-slate-800">{group.section}</p>
+                  </div>
+                  <div className="p-2.5 space-y-1">
+                    {group.fields.map((f) => (
+                      <div key={f.name} className="flex items-start justify-between gap-2">
+                        <span className="text-[10px] font-mono text-slate-600">{f.name}</span>
+                        <span className="text-[9px] font-mono text-slate-400 shrink-0">{f.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* ── 6. Defect Detection Illustration ── */}
           <Card className="p-5 bg-white shadow-sm border-slate-200">
             <SectionHeader icon={<Eye className="size-4 text-orange-600" />} label="Multimodal Defect Detection — How Gemini Analyzes Images" />
             <div className="mt-4 grid md:grid-cols-3 gap-4">
@@ -654,11 +680,21 @@ export default function AiPipelinePage() {
                 </div>
               </div>
 
+              {/* Complaint text */}
+              {selectedCase.complaintText && (
+                <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-400 mb-1">
+                    Customer Complaint (Input)
+                  </p>
+                  <p className="text-xs text-blue-800 leading-relaxed">{selectedCase.complaintText}</p>
+                </div>
+              )}
+
               {/* Manager summary */}
               {selectedCase.managerSummary && (
                 <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1">
-                    AI Manager Summary
+                    AI Manager Summary (Output)
                   </p>
                   <p className="text-xs text-slate-700 leading-relaxed">{selectedCase.managerSummary}</p>
                 </div>
@@ -835,6 +871,74 @@ const VISUAL_OUTPUTS = [
   { field: "serial_number_visible", type: "boolean", description: "Whether the product serial number label is visible in any image" },
   { field: "claim_image_consistency", type: "enum (3 values)", description: "supports_claim | does_not_support_claim | inconclusive" },
   { field: "visual_uncertainty", type: "string", description: "Free-text explanation of any visual ambiguity or limitations" },
+];
+
+const ZOD_SCHEMA_FIELDS = [
+  {
+    section: "complaint_analysis",
+    bg: "bg-blue-50",
+    fields: [
+      { name: "category", type: "enum (5)" },
+      { name: "severity", type: "enum (4)" },
+      { name: "clarity_score", type: "0–100" },
+      { name: "missing_evidence", type: "string[]" },
+    ],
+  },
+  {
+    section: "visual_analysis",
+    bg: "bg-orange-50",
+    fields: [
+      { name: "visible_damage", type: "boolean" },
+      { name: "damage_type", type: "enum (7)" },
+      { name: "evidence_quality_score", type: "0–100" },
+      { name: "serial_number_visible", type: "boolean" },
+      { name: "claim_image_consistency", type: "enum (3)" },
+      { name: "visual_uncertainty", type: "string" },
+    ],
+  },
+  {
+    section: "document_analysis",
+    bg: "bg-emerald-50",
+    fields: [
+      { name: "invoice_valid", type: "bool | null" },
+      { name: "warranty_status", type: "enum (3)" },
+      { name: "return_window_status", type: "enum (3)" },
+      { name: "product_value_aed", type: "number | null" },
+      { name: "extracted_fields", type: "object (8 fields)" },
+    ],
+  },
+  {
+    section: "policy_analysis",
+    bg: "bg-violet-50",
+    fields: [
+      { name: "relevant_sections", type: "string[] (min 1)" },
+      { name: "policy_result", type: "string" },
+    ],
+  },
+  {
+    section: "Top-level Outputs",
+    bg: "bg-slate-50",
+    fields: [
+      { name: "case_summary", type: "string" },
+      { name: "contradictions", type: "string[]" },
+      { name: "verified_facts", type: "string[]" },
+      { name: "uncertainties", type: "string[]" },
+      { name: "replacement_validity_score", type: "0–100" },
+      { name: "recommended_action", type: "enum (6)" },
+      { name: "manager_summary", type: "string" },
+    ],
+  },
+  {
+    section: "Validation & Safety",
+    bg: "bg-amber-50",
+    fields: [
+      { name: "Schema", type: "Zod strict parse" },
+      { name: "Retry on failure", type: "1 repair attempt" },
+      { name: "Output mode", type: "JSON (responseMimeType)" },
+      { name: "Score cross-check", type: "RVS weighted formula" },
+      { name: "Drift threshold", type: "|delta| <= 20" },
+    ],
+  },
 ];
 
 const RAG_STEPS = [

@@ -287,10 +287,21 @@ export default async function CasesPage() {
                       }
                       verifiedFacts={valid?.verified_facts ?? []}
                       uncertainties={valid?.uncertainties ?? []}
+                      contradictions={valid?.contradictions ?? []}
                       complaintCategory={valid?.complaint_analysis.category}
                       severity={valid?.complaint_analysis.severity}
                       modelUsed={c.analysis?.modelUsed}
                       latencyMs={c.analysis?.latencyMs}
+                      visibleDamage={valid?.visual_analysis.visible_damage}
+                      damageType={valid?.visual_analysis.damage_type}
+                      claimImageConsistency={valid?.visual_analysis.claim_image_consistency}
+                      serialNumberVisible={valid?.visual_analysis.serial_number_visible}
+                      invoiceValid={valid?.document_analysis.invoice_valid}
+                      warrantyStatus={valid?.document_analysis.warranty_status}
+                      returnWindowStatus={valid?.document_analysis.return_window_status}
+                      productValueAed={valid?.document_analysis.product_value_aed}
+                      relevantSections={valid?.policy_analysis.relevant_sections}
+                      policyResult={valid?.policy_analysis.policy_result}
                     />
                   );
                 })}

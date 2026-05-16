@@ -42,65 +42,63 @@ export function DashboardTabs({
 
   return (
     <Tabs defaultValue="complaint" className="w-full">
-      <TabsList>
+      <TabsList className="flex-wrap h-auto">
         <TabsTrigger value="complaint">Complaint</TabsTrigger>
         <TabsTrigger value="images">Images ({images.length})</TabsTrigger>
         <TabsTrigger value="documents">Documents</TabsTrigger>
         <TabsTrigger value="policy">Policy ({retrievedChunks.length})</TabsTrigger>
-        <TabsTrigger value="cost">Cost</TabsTrigger>
+        <TabsTrigger value="cost">Cost Impact</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="complaint" className="mt-4 space-y-3">
-        <Card className="p-4 space-y-2">
-          <div className="flex flex-wrap gap-2 items-center text-xs">
+      <TabsContent value="complaint" className="mt-3 space-y-3">
+        <Card className="p-4 space-y-3">
+          <div className="flex flex-wrap gap-2">
             <Pill>category: {analysis.complaint_analysis.category}</Pill>
             <Pill>severity: {analysis.complaint_analysis.severity}</Pill>
             <Pill>clarity: {analysis.complaint_analysis.clarity_score}/100</Pill>
           </div>
-          <blockquote className="border-l-4 border-muted pl-3 italic text-sm text-foreground/90">
-            “{complaintText}”
+          <blockquote className="border-l-4 border-slate-200 pl-3 italic text-sm text-slate-700">
+            &ldquo;{complaintText}&rdquo;
           </blockquote>
           <div>
-            <h4 className="text-xs uppercase tracking-wide text-muted-foreground">
-              AI summary
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+              AI Summary
             </h4>
-            <p className="text-sm">{analysis.case_summary}</p>
+            <p className="text-sm text-slate-700">{analysis.case_summary}</p>
           </div>
-          {analysis.complaint_analysis.missing_evidence.length > 0 ? (
+          {analysis.complaint_analysis.missing_evidence.length > 0 && (
             <div>
-              <h4 className="text-xs uppercase tracking-wide text-muted-foreground">
-                Missing evidence
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                Missing Evidence
               </h4>
-              <ul className="text-sm list-disc pl-5">
+              <ul className="text-sm text-slate-700 list-disc pl-5 space-y-0.5">
                 {analysis.complaint_analysis.missing_evidence.map((m, i) => (
                   <li key={i}>{m}</li>
                 ))}
               </ul>
             </div>
-          ) : null}
+          )}
         </Card>
       </TabsContent>
 
-      <TabsContent value="images" className="mt-4 space-y-3">
+      <TabsContent value="images" className="mt-3 space-y-3">
         <Card className="p-4 space-y-3">
-          <div className="flex flex-wrap gap-2 items-center text-xs">
+          <div className="flex flex-wrap gap-2">
             <Pill>visible damage: {analysis.visual_analysis.visible_damage ? "yes" : "no"}</Pill>
             <Pill>damage type: {analysis.visual_analysis.damage_type}</Pill>
             <Pill>evidence quality: {analysis.visual_analysis.evidence_quality_score}/100</Pill>
             <Pill>
               consistency: {analysis.visual_analysis.claim_image_consistency.replace(/_/g, " ")}
             </Pill>
-            <Pill>
-              serial visible: {analysis.visual_analysis.serial_number_visible ? "yes" : "no"}
-            </Pill>
+            <Pill>serial visible: {analysis.visual_analysis.serial_number_visible ? "yes" : "no"}</Pill>
           </div>
-          {analysis.visual_analysis.visual_uncertainty ? (
-            <p className="text-xs text-amber-700">
-              <strong>Uncertainty:</strong> {analysis.visual_analysis.visual_uncertainty}
+          {analysis.visual_analysis.visual_uncertainty && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              <strong>Visual uncertainty:</strong> {analysis.visual_analysis.visual_uncertainty}
             </p>
-          ) : null}
+          )}
           {images.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No images attached.</p>
+            <p className="text-sm text-slate-400 italic">No images attached.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {images.map((img) => (
@@ -109,7 +107,7 @@ export function DashboardTabs({
                   href={img.blobUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-md overflow-hidden border bg-muted hover:opacity-90"
+                  className="block rounded-lg overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -117,8 +115,8 @@ export function DashboardTabs({
                     alt={img.docType}
                     className="w-full aspect-square object-cover"
                   />
-                  <div className="px-2 py-1 text-xs bg-background border-t">
-                    {img.docType}
+                  <div className="px-2 py-1.5 text-xs text-slate-600 bg-slate-50 border-t border-slate-200">
+                    {img.docType.replace(/_/g, " ")}
                   </div>
                 </a>
               ))}
@@ -127,93 +125,95 @@ export function DashboardTabs({
         </Card>
       </TabsContent>
 
-      <TabsContent value="documents" className="mt-4 space-y-3">
+      <TabsContent value="documents" className="mt-3 space-y-3">
         <Card className="p-4 space-y-3">
-          <div className="flex flex-wrap gap-2 items-center text-xs">
+          <div className="flex flex-wrap gap-2">
             <Pill>
               invoice:{" "}
               {analysis.document_analysis.invoice_valid === null
                 ? "unknown"
                 : analysis.document_analysis.invoice_valid
-                  ? "valid"
-                  : "invalid"}
+                ? "valid"
+                : "invalid"}
             </Pill>
             <Pill>warranty: {analysis.document_analysis.warranty_status}</Pill>
             <Pill>return window: {analysis.document_analysis.return_window_status}</Pill>
-            {analysis.document_analysis.product_value_aed != null ? (
+            {analysis.document_analysis.product_value_aed != null && (
               <Pill>value: AED {analysis.document_analysis.product_value_aed}</Pill>
-            ) : null}
+            )}
           </div>
           <div>
-            <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-              Extracted fields
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
+              Extracted Fields
             </h4>
-            <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+            <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
               {Object.entries(analysis.document_analysis.extracted_fields).map(([k, v]) => (
-                <div key={k} className="flex gap-2">
-                  <dt className="text-muted-foreground">{k.replace(/_/g, " ")}:</dt>
-                  <dd className="font-medium">{v ?? "—"}</dd>
+                <div key={k}>
+                  <dt className="text-slate-400">{k.replace(/_/g, " ")}</dt>
+                  <dd className="font-medium text-slate-800">{String(v) ?? "—"}</dd>
                 </div>
               ))}
             </dl>
           </div>
-          {nonImages.length > 0 ? (
+          {nonImages.length > 0 && (
             <div>
-              <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                Source files
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                Source Files
               </h4>
-              <ul className="text-sm space-y-1">
+              <ul className="space-y-1">
                 {nonImages.map((d) => (
                   <li key={d.id}>
                     <a
                       href={d.blobUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline"
+                      className="text-sm text-blue-600 hover:underline"
                     >
-                      {d.docType} ({d.mimeType})
+                      {d.docType.replace(/_/g, " ")} ({d.mimeType})
                     </a>
                   </li>
                 ))}
               </ul>
             </div>
-          ) : null}
+          )}
         </Card>
       </TabsContent>
 
-      <TabsContent value="policy" className="mt-4 space-y-3">
-        <Card className="p-4 space-y-3">
+      <TabsContent value="policy" className="mt-3 space-y-3">
+        <Card className="p-4 space-y-4">
           <div>
-            <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-              Cited policy sections
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
+              Policy Result
             </h4>
-            <ul className="text-sm list-disc pl-5">
+            <p className="text-sm text-slate-700 whitespace-pre-wrap">
+              {analysis.policy_analysis.policy_result}
+            </p>
+          </div>
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
+              Cited Sections
+            </h4>
+            <ul className="text-sm list-disc pl-5 space-y-0.5">
               {analysis.policy_analysis.relevant_sections.map((s, i) => (
-                <li key={i} className="font-mono">{s}</li>
+                <li key={i} className="font-mono text-slate-700">{s}</li>
               ))}
             </ul>
           </div>
           <div>
-            <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-              Policy result
-            </h4>
-            <p className="text-sm whitespace-pre-wrap">{analysis.policy_analysis.policy_result}</p>
-          </div>
-          <div>
-            <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-              Retrieved chunks (top {retrievedChunks.length}, ranked by cosine similarity)
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
+              Retrieved Chunks (top {retrievedChunks.length}, by cosine similarity)
             </h4>
             <ul className="space-y-1.5">
               {retrievedChunks.map((c) => (
                 <li
                   key={c.id}
-                  className="flex items-center justify-between rounded border bg-muted/40 px-3 py-1.5 text-xs"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
                 >
-                  <span className="font-mono">
+                  <span className="font-mono text-xs text-slate-700">
                     {c.policyName} §{c.sectionRef}
                   </span>
-                  <span className="tabular-nums text-muted-foreground">
-                    score {c.score.toFixed(3)}
+                  <span className="tabular-nums text-xs text-slate-400 font-medium">
+                    {c.score.toFixed(3)}
                   </span>
                 </li>
               ))}
@@ -222,19 +222,27 @@ export function DashboardTabs({
         </Card>
       </TabsContent>
 
-      <TabsContent value="cost" className="mt-4 space-y-3">
-        <Card className="p-4 space-y-2">
-          <p className="text-sm">
-            If this recommendation prevents an unnecessary replacement, the estimated cost avoided
-            for this case is:
-          </p>
-          <p className="text-2xl font-semibold tabular-nums">
-            AED {Math.round(estimatedSaving).toLocaleString()}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            = technician visit (150) + reverse logistics (80) + replacement delivery (100) + 20% open-box
-            depreciation on product value (AED {productValue}).
-          </p>
+      <TabsContent value="cost" className="mt-3 space-y-3">
+        <Card className="p-5">
+          <div className="flex items-end gap-3 mb-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                Estimated Cost Avoided (if replacement prevented)
+              </p>
+              <p className="text-3xl font-bold text-slate-900 tabular-nums">
+                AED {Math.round(estimatedSaving).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 space-y-1 border-t border-slate-100 pt-3">
+            <p>Breakdown per case:</p>
+            <ul className="list-disc pl-4 space-y-0.5">
+              <li>Technician visit: AED 150</li>
+              <li>Reverse logistics: AED 80</li>
+              <li>Replacement delivery: AED 100</li>
+              <li>20% open-box depreciation on product value (AED {productValue.toLocaleString()})</li>
+            </ul>
+          </div>
         </Card>
       </TabsContent>
     </Tabs>
@@ -243,7 +251,7 @@ export function DashboardTabs({
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs">
+    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
       {children}
     </span>
   );

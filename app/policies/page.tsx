@@ -17,6 +17,8 @@ const POLICY_DESCRIPTIONS: Record<string, string> = {
     "Internal framework for classifying damage (DOA, transit, installation, misuse, cosmetic), evidence standards, and AI-assisted image analysis thresholds.",
   "Extended Warranty & After-Sales Service Policy":
     "Extended warranty program tiers, out-of-warranty service rates, authorised service network, spare parts guarantee, and PMC contracts.",
+  "Refund & Credit Note Policy":
+    "Governs full/partial refund eligibility, credit note issuance terms, refund processing timelines, high-value escalation, and AI integration for refund decisions.",
 };
 
 const POLICY_ICONS: Record<string, React.ReactNode> = {
@@ -26,6 +28,7 @@ const POLICY_ICONS: Record<string, React.ReactNode> = {
   "UAE Consumer Protection Policy": <Shield className="size-5 text-red-600" />,
   "Electronics & Appliance Damage Assessment Policy": <Shield className="size-5 text-orange-600" />,
   "Extended Warranty & After-Sales Service Policy": <Shield className="size-5 text-indigo-600" />,
+  "Refund & Credit Note Policy": <Shield className="size-5 text-teal-600" />,
 };
 
 const RULE_TYPE_COLORS: Record<string, string> = {

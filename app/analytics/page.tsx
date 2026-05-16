@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/db/prisma";
 import { Card } from "@/components/ui/card";
-import { AnalyticsChart, RecommendationPieChart } from "@/components/analytics-chart";
+import {
+  AnalyticsChart,
+  RecommendationPieChart,
+  StatusPieChart,
+  CaseTimelineChart,
+  ScoreDistributionChart,
+} from "@/components/analytics-chart";
 import {
   avoidedCostPerCase,
   COST_SAVING_RECOMMENDATIONS,
@@ -19,6 +25,9 @@ import {
   Target,
   BarChart3,
   DollarSign,
+  ArrowRight,
+  Shield,
+  PieChart,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -27,7 +36,7 @@ export const dynamic = "force-dynamic";
 const MONTHLY_VOLUME_MULTIPLIER = 4;
 
 export default async function DashboardPage() {
-  const [totalCases, decisionGroups, analyses, recentCases, statusGroups] =
+  const [totalCases, decisionGroups, analyses, recentCases, statusGroups, allCases] =
     await Promise.all([
       prisma.case.count(),
       prisma.managerDecision.groupBy({
@@ -54,6 +63,14 @@ export default async function DashboardPage() {
         },
       }),
       prisma.case.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.case.findMany({
+        select: {
+          createdAt: true,
+          analysis: { select: { createdAt: true, recommendation: true } },
+          decision: { select: { decision: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
     ]);
 
   const recommendationCounts: Record<string, number> = {};
@@ -61,12 +78,14 @@ export default async function DashboardPage() {
   let totalAvoidedAed = 0;
   let totalLatencyMs = 0;
   let totalScore = 0;
+  const allScores: number[] = [];
 
   for (const a of analyses) {
     recommendationCounts[a.recommendation] =
       (recommendationCounts[a.recommendation] ?? 0) + 1;
     totalLatencyMs += a.latencyMs;
     totalScore += a.replacementValidityScore;
+    allScores.push(a.replacementValidityScore);
     if (COST_SAVING_RECOMMENDATIONS.has(a.recommendation)) {
       const productValue =
         ((a.explanationJson as Record<string, unknown> | null)
@@ -99,11 +118,50 @@ export default async function DashboardPage() {
     ? Math.round(totalScore / analyses.length)
     : 0;
 
-  const approvedCount =
-    (decisionCounts["approve"] ?? 0);
+  const approvedCount = decisionCounts["approve"] ?? 0;
   const rejectedCount = decisionCounts["reject"] ?? 0;
   const pendingAnalysis = statusMap["new"] ?? 0;
   const pendingDecision = statusMap["analyzed"] ?? 0;
+
+  // AI-Manager concordance
+  let concordantCount = 0;
+  let totalDecisions = 0;
+  const CONCORDANCE_MAP: Record<string, string> = {
+    approve_replacement: "approve",
+    reject_request: "reject",
+    request_more_evidence: "request_evidence",
+    remote_troubleshooting: "remote_troubleshoot",
+    escalate_manager: "escalate",
+  };
+  for (const c of allCases) {
+    if (c.analysis && c.decision) {
+      totalDecisions++;
+      const mapped = CONCORDANCE_MAP[c.analysis.recommendation];
+      if (mapped === c.decision.decision) concordantCount++;
+    }
+  }
+  const concordanceRate = totalDecisions > 0
+    ? Math.round((concordantCount / totalDecisions) * 100)
+    : null;
+
+  // Timeline data (group by date)
+  const timelineMap = new Map<string, { cases: number; analyses: number }>();
+  for (const c of allCases) {
+    const dateKey = c.createdAt.toISOString().slice(0, 10);
+    const entry = timelineMap.get(dateKey) ?? { cases: 0, analyses: 0 };
+    entry.cases++;
+    if (c.analysis) entry.analyses++;
+    timelineMap.set(dateKey, entry);
+  }
+  const timeline = Array.from(timelineMap.entries())
+    .map(([date, data]) => ({
+      date: new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+      }).format(new Date(date)),
+      cases: data.cases,
+      analyses: data.analyses,
+    }));
 
   return (
     <div className="space-y-6">
@@ -159,7 +217,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* AI Performance Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           label="Avg RVS Score"
           value={`${avgScore}/100`}
@@ -182,20 +240,26 @@ export default async function DashboardPage() {
           label="Projected Monthly"
           value={`AED ${Math.round(projectedMonthlyAed).toLocaleString()}`}
           icon={<TrendingUp className="size-4 text-slate-500" />}
-          note={`${conservativeCount} conservative × ${MONTHLY_VOLUME_MULTIPLIER}× volume`}
+          note={`${conservativeCount} conservative x ${MONTHLY_VOLUME_MULTIPLIER}x volume`}
+        />
+        <MetricCard
+          label="AI-Manager Agreement"
+          value={concordanceRate !== null ? `${concordanceRate}%` : "N/A"}
+          icon={<Shield className="size-4 text-slate-500" />}
+          note={totalDecisions > 0 ? `${concordantCount}/${totalDecisions} concordant` : "No decisions yet"}
         />
       </div>
 
-      {/* Charts row */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card className="p-5 bg-white shadow-sm border-slate-200">
+      {/* Charts row 1: Recommendations + Status */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 p-5 bg-white shadow-sm border-slate-200">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-semibold text-slate-900">
                 AI Recommendations
               </h2>
               <p className="text-xs text-slate-500">
-                Distribution of outcomes across all analyzed cases
+                Distribution of AI outcomes across all analyzed cases
               </p>
             </div>
             <Activity className="size-4 text-slate-400" />
@@ -207,6 +271,24 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-semibold text-slate-900">
+                Case Status
+              </h2>
+              <p className="text-xs text-slate-500">
+                Current pipeline status distribution
+              </p>
+            </div>
+            <PieChart className="size-4 text-slate-400" />
+          </div>
+          <StatusPieChart statusCounts={statusMap} />
+        </Card>
+      </div>
+
+      {/* Charts row 2: Timeline + Score Distribution + Pie */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-1 p-5 bg-white shadow-sm border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">
                 Recommendation Breakdown
               </h2>
               <p className="text-xs text-slate-500">
@@ -215,6 +297,36 @@ export default async function DashboardPage() {
             </div>
           </div>
           <RecommendationPieChart counts={recommendationCounts} />
+        </Card>
+
+        <Card className="p-5 bg-white shadow-sm border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">
+                RVS Score Distribution
+              </h2>
+              <p className="text-xs text-slate-500">
+                Replacement Validity Score spread
+              </p>
+            </div>
+            <Target className="size-4 text-slate-400" />
+          </div>
+          <ScoreDistributionChart scores={allScores} />
+        </Card>
+
+        <Card className="p-5 bg-white shadow-sm border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">
+                Case Timeline
+              </h2>
+              <p className="text-xs text-slate-500">
+                Cases created vs analyzed over time
+              </p>
+            </div>
+            <TrendingUp className="size-4 text-slate-400" />
+          </div>
+          <CaseTimelineChart timeline={timeline} />
         </Card>
       </div>
 
@@ -330,6 +442,7 @@ export default async function DashboardPage() {
                         {c.status}
                       </span>
                     )}
+                    <ArrowRight className="size-3 text-slate-300 group-hover:text-blue-500 transition-colors" />
                   </div>
                 </Link>
               ))
@@ -340,7 +453,7 @@ export default async function DashboardPage() {
 
       {/* AI Advisory note */}
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 flex items-start gap-2">
-        <span className="mt-0.5 text-amber-500">⚠</span>
+        <span className="mt-0.5 text-amber-500">&#9888;</span>
         <span>
           <strong>AI output is advisory.</strong> All recommendations above are
           generated by Gemini 2.0 Flash via a Multimodal RAG pipeline and must

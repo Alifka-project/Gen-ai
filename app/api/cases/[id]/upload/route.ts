@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { prisma } from "@/lib/db/prisma";
 import { recordAudit } from "@/lib/db/audit";
 
@@ -25,6 +24,25 @@ const ALLOWED_DOC_TYPES = new Set([
 ]);
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+
+async function storeWithBlob(
+  file: File,
+  caseId: string
+): Promise<string> {
+  const { put } = await import("@vercel/blob");
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const blob = await put(
+    `cases/${caseId}/${Date.now()}-${safeName}`,
+    file,
+    { access: "public", contentType: file.type }
+  );
+  return blob.url;
+}
+
+async function storeAsDataUri(file: File): Promise<string> {
+  const buf = Buffer.from(await file.arrayBuffer());
+  return `data:${file.type};base64,${buf.toString("base64")}`;
+}
 
 export async function POST(
   req: Request,
@@ -73,28 +91,19 @@ export async function POST(
     );
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json(
-      {
-        error:
-          "BLOB_READ_WRITE_TOKEN not configured. Set it locally via `vercel env pull .env.local`.",
-      },
-      { status: 503 }
-    );
+  // Use Vercel Blob if configured, otherwise store as base64 data URI
+  let fileUrl: string;
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    fileUrl = await storeWithBlob(file, params.id);
+  } else {
+    fileUrl = await storeAsDataUri(file);
   }
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const blob = await put(
-    `cases/${params.id}/${Date.now()}-${safeName}`,
-    file,
-    { access: "public", contentType: file.type }
-  );
 
   const doc = await prisma.document.create({
     data: {
       caseId: params.id,
       docType,
-      blobUrl: blob.url,
+      blobUrl: fileUrl,
       mimeType: file.type,
     },
   });
@@ -108,6 +117,7 @@ export async function POST(
       docType: doc.docType,
       mimeType: doc.mimeType,
       bytes: file.size,
+      storage: process.env.BLOB_READ_WRITE_TOKEN ? "vercel_blob" : "data_uri",
     },
   });
 

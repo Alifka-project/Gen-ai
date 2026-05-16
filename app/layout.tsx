@@ -31,19 +31,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
       >
         <div className="flex flex-col min-h-screen">
-          {/* Governance banner spans full width */}
           <GovernanceBanner />
-
-          {/* Body: sidebar + main */}
-          <div className="flex flex-1 min-h-0">
+          <div className="flex flex-1 overflow-hidden">
             <Sidebar />
-
-            {/* Main content area */}
-            <div className="flex flex-1 flex-col min-w-0">
-              <main className="flex-1 p-6 lg:p-8 max-w-screen-2xl w-full">
+            <main className="flex-1 overflow-y-auto">
+              <div className="px-6 py-6 lg:px-8 lg:py-7 max-w-7xl w-full mx-auto">
                 {children}
-              </main>
-            </div>
+              </div>
+            </main>
           </div>
         </div>
         <Toaster richColors closeButton position="top-right" />

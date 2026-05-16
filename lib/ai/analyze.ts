@@ -24,6 +24,16 @@ export type AnalyzeResult = {
 };
 
 async function fetchBlobAsBase64(url: string): Promise<GeminiInlineFile> {
+  // Handle base64 data URIs stored directly in DB (when Vercel Blob is not configured)
+  if (url.startsWith("data:")) {
+    const match = url.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) {
+      return { mimeType: match[1], base64: match[2] };
+    }
+    throw new Error("invalid data URI format");
+  }
+
+  // Standard HTTP fetch for Vercel Blob URLs
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`failed to fetch blob ${url}: ${res.status} ${res.statusText}`);

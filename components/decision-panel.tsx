@@ -70,33 +70,36 @@ export function DecisionPanel({
   }
 
   return (
-    <Card className="p-6 space-y-4">
+    <Card className="p-6 space-y-5 border-slate-200">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold">Manager decision</h2>
-          <p className="text-sm text-muted-foreground">
-            The AI output above is advisory. Choose the action you authorise as the manager.
+          <h2 className="text-base font-semibold text-slate-900">Manager Decision</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            AI output is advisory. Choose the action you authorise as the responsible manager.
           </p>
         </div>
-        {currentDecision ? (
+        {currentDecision && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Current:</span>
+            <span className="text-xs text-slate-400">Current:</span>
             <RecommendationBadge value={currentDecision} size="sm" />
           </div>
-        ) : null}
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
         {DECISIONS.map((d) => {
           const disabled = role !== "manager" && MANAGER_ONLY.has(d.value);
+          const isSelected = decision === d.value;
           return (
             <Button
               key={d.value}
-              variant={decision === d.value ? "default" : d.variant}
+              variant={isSelected ? "default" : d.variant}
+              size="sm"
               onClick={() => setDecision(d.value)}
               type="button"
               disabled={disabled}
-              title={disabled ? "Manager role required (switch role in the header)." : undefined}
+              title={disabled ? "Manager role required — switch role in the header." : undefined}
+              className={isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}
             >
               {d.label}
               {disabled ? " (manager only)" : ""}
@@ -105,25 +108,26 @@ export function DecisionPanel({
         })}
       </div>
 
-      {role !== "manager" ? (
-        <p className="text-xs text-muted-foreground">
-          You are acting as <strong>customer service</strong>. Approve / Reject
+      {role !== "manager" && (
+        <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+          You are acting as <strong>Customer Service</strong>. Approve / Reject
           require the manager role per Replacement Policy §3.1. Switch role in
           the header to unlock them.
         </p>
-      ) : null}
+      )}
 
-      <div>
-        <label className="text-sm font-medium">Manager note (optional)</label>
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-slate-700">Manager Note (optional)</label>
         <Textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={3}
           placeholder="Reason, customer-facing message, or any caveats for the audit log."
+          className="resize-none"
         />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-1">
         <Button
           onClick={submit}
           disabled={
@@ -132,7 +136,7 @@ export function DecisionPanel({
             (role !== "manager" && MANAGER_ONLY.has(decision ?? ""))
           }
         >
-          {saving ? "Saving..." : currentDecision ? "Update decision" : "Submit decision"}
+          {saving ? "Saving…" : currentDecision ? "Update Decision" : "Submit Decision"}
         </Button>
       </div>
     </Card>
