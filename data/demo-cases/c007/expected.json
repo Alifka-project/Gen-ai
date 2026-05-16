@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c007",
-  "title": "GOLDEN CASE — claim of dent but no supporting visual evidence",
+  "title": "GOLDEN — Bosch WGG434E0ID 8 kg — claim of severe dent with no supporting evidence",
+  "productModel": "WGG434E0ID",
   "expectedRecommendation": "request_more_evidence",
   "acceptableAlternatives": ["reject_request", "escalate_manager"],
   "expectsContradiction": true,
   "expectedCategory": "visible_damage",
-  "notes": "Hero demo for contradiction handling (brief §22 / proposal §12.3). Complaint claims visible dent; if photos are absent or show no damage, the AI must flag the inconsistency in contradictions[] and refuse to recommend approve_replacement. For best demo effect upload an image of an undamaged unit before running analysis."
+  "notes": "Hero demo for contradiction handling (brief §22 / proposal §12.3). Complaint claims severe dents and visible damage but no photos are attached (or the photos show no damage). The AI must populate contradictions[] with the claim-vs-evidence mismatch and refuse to recommend approve_replacement. For maximum demo effect, upload an image of an undamaged unit before clicking 'Run analysis'."
 }

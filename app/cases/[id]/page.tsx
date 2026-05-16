@@ -151,6 +151,7 @@ export default async function CasePage({ params }: { params: { id: string } }) {
 
           <DashboardTabs
             complaintText={c.complaintText}
+            productModel={c.productModel}
             analysis={validAnalysis}
             documents={c.documents.map((d) => ({
               id: d.id,

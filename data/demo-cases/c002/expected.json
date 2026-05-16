@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c002",
-  "title": "Washer delivered with broken door",
+  "title": "Bosch WGG444E0ID 9 kg washer — torn door gasket at delivery",
+  "productModel": "WGG444E0ID",
   "expectedRecommendation": "approve_replacement",
-  "acceptableAlternatives": ["escalate_manager"],
+  "acceptableAlternatives": ["escalate_manager", "request_more_evidence"],
   "expectsContradiction": false,
   "expectedCategory": "visible_damage",
-  "notes": "Clear physical damage, fresh delivery (within return window). Eligible for direct replacement per Replacement Policy §1 if evidence is documented per Return Policy §2."
+  "notes": "Clear physical damage (5 cm tear in door gasket) reported within hours of delivery with unboxing photos. Qualifies as defective-on-arrival under Return Policy §3.2(a); eligible for direct replacement under Replacement Policy §1."
 }

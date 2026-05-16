@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c005",
-  "title": "Defective claim with no evidence",
+  "title": "Samsung WA16N6781CV ActivWash+ 16 kg — vague defect claim, no evidence",
+  "productModel": "WA16N6781CV",
   "expectedRecommendation": "request_more_evidence",
-  "acceptableAlternatives": ["remote_troubleshooting", "escalate_manager"],
+  "acceptableAlternatives": ["remote_troubleshooting", "send_technician", "escalate_manager"],
   "expectsContradiction": false,
   "expectedCategory": "functional_issue",
-  "notes": "Vague defect claim with no photo, video, or symptom description. AI must request a video, the error code, or a remote troubleshoot session before any action."
+  "notes": "Vague functional defect claim with no symptom description, photo, video, or error code. Must request a Smart Check error code, a video of the symptom, or schedule a remote troubleshoot session before any operational action."
 }

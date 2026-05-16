@@ -1,9 +1,14 @@
 // prisma/seed.ts
-// Insert the 8 demo cases from brief §9. Idempotent — safe to re-run.
-// Run with: pnpm seed
+// Insert 8 demo cases. Every productModel is a real model code from the
+// Bosch + Samsung catalogues in data/products/catalogue.ts. Run via `pnpm seed`.
+//
+// Idempotent: re-running upserts case fields. If the productModel changed
+// since the last seed, the existing AiAnalysis + ManagerDecision rows are
+// cleared (they were analyzed against the old product and would be stale).
 
 import "dotenv/config";
 import { prisma } from "../lib/db/prisma";
+import { findProduct } from "../lib/catalogue";
 
 type SeedCase = {
   id: string;
@@ -18,80 +23,103 @@ const DEMO_CASES: SeedCase[] = [
   {
     id: "demo-c001",
     customerName: "Aisha Khan",
-    productModel: "RX-450 Refrigerator",
-    serialNumber: "RX450-2024-001",
+    productModel: "WNA264U9ID",
+    serialNumber: "WNA264-2024-001",
     complaintText:
-      "The refrigerator stopped cooling about 3 days ago. The power light is on and the freezer light works, but the inside is at room temperature. Bought 8 months ago.",
+      "The drying cycle on my Bosch washer-dryer stops without heating the load. Clothes come out wet at the end of the 60-minute Wash & Dry program. Wash cycle still works normally. Bought 8 months ago.",
     requestedAction: "replacement",
   },
   {
     id: "demo-c002",
     customerName: "Mohamed Al-Hashemi",
-    productModel: "WS-9KG Washing Machine",
-    serialNumber: "WS9KG-2024-018",
+    productModel: "WGG444E0ID",
+    serialNumber: "WGG444-2024-018",
     complaintText:
-      "Washing machine arrived this morning with the front door panel snapped off at the hinge. Delivery was 2 hours ago, photos attached at unboxing.",
+      "The front-load washer arrived 2 hours ago and the door rubber gasket has a 5-cm tear at the bottom of the seal. Photos taken during unboxing are attached. Have not used the machine.",
     requestedAction: "replacement",
   },
   {
     id: "demo-c003",
     customerName: "Layla Rahman",
-    productModel: "DW-12P Dishwasher",
-    serialNumber: "DW12P-2024-077",
+    productModel: "WW91K54E0UX/TL",
+    serialNumber: "WW91K-2024-077",
     complaintText:
-      "Noticed a small scratch on the side panel today, about 20 days after delivery. It does not affect operation but I would like a replacement.",
+      "Noticed a small 2-cm scratch on the top panel of my AddWash machine 25 days after delivery. The machine works fine but I would like a replacement.",
     requestedAction: "replacement",
   },
   {
     id: "demo-c004",
     customerName: "Omar Saleh",
-    productModel: "MW-30L Microwave",
-    serialNumber: "MW30L-2024-145",
+    productModel: "WW10N641RBX/TL",
+    serialNumber: "WW10N-2024-145",
     complaintText:
-      "The unit is missing the rotating glass turntable. Everything else was in the box, but no turntable.",
+      "The detergent dispenser drawer is missing from the box. Everything else (manual, hose, drain pipe) was present at unboxing. Cannot start a wash cycle without it.",
     requestedAction: "replacement",
   },
   {
     id: "demo-c005",
     customerName: "Sara Petrov",
-    productModel: "BL-500 Blender",
+    productModel: "WA16N6781CV",
     serialNumber: null,
     complaintText:
-      "The blender is defective. Want a replacement immediately.",
+      "The washing machine is defective. Please send a new one.",
     requestedAction: "replacement",
   },
   {
     id: "demo-c006",
     customerName: "Jamal Ahmed",
-    productModel: "AC-18K Split AC",
-    serialNumber: "AC18K-2024-099",
+    productModel: "WGG454E0ID",
+    serialNumber: "WGG454-2024-099",
     complaintText:
-      "AC indoor unit is noisy with a low-frequency vibration when running on cool mode. No error codes on the display. Installation was 1 month ago.",
+      "The washer vibrates excessively and is very loud during the spin cycle. Started about 1 month after installation. Drum looks balanced when loading. No error code displayed.",
     requestedAction: "replacement",
   },
   {
     id: "demo-c007",
     customerName: "Hana Yousef",
-    productModel: "OV-60L Built-In Oven",
-    serialNumber: "OV60L-2024-022",
+    productModel: "WGG434E0ID",
+    serialNumber: "WGG434-2024-022",
     complaintText:
-      "The oven arrived dented on the right side. Photos attached showing the damage clearly.",
+      "My new washing machine arrived with severe dents and visible damage on the side panel. The damage is clearly shown in the photos I attached at delivery.",
     requestedAction: "replacement",
   },
   {
     id: "demo-c008",
     customerName: "Tareq Habib",
-    productModel: "TV-55Q QLED Television",
-    serialNumber: "TV43L-2024-300",
+    productModel: "WW70K54E0YW/TL",
+    serialNumber: "WW70K-2024-300",
     complaintText:
-      "Ordered the 55-inch QLED model but the box delivered today contains a 43-inch LED model. The serial label on the unit confirms it is the wrong product family.",
+      "I ordered the Samsung WW10N641RBX/TL Q-Rator 10 kg washer but the unit delivered today is a Samsung WW70K54E0YW/TL AddWash 7 kg. The serial label and the invoice product code do not match. Need the originally ordered model.",
     requestedAction: "replacement",
   },
 ];
 
 async function main() {
-  console.log(`→ Seeding ${DEMO_CASES.length} demo cases...`);
+  console.log(`→ Seeding ${DEMO_CASES.length} demo cases (catalogue-bound)...`);
+
   for (const c of DEMO_CASES) {
+    if (!findProduct(c.productModel)) {
+      throw new Error(
+        `Seed integrity error: ${c.id} uses productModel ${c.productModel} which is not in the catalogue. Fix data/products/catalogue.ts or prisma/seed.ts.`
+      );
+    }
+
+    const existing = await prisma.case.findUnique({
+      where: { id: c.id },
+      select: { productModel: true },
+    });
+
+    if (existing && existing.productModel !== c.productModel) {
+      // Product changed — old AI analysis + manager decision are stale.
+      await prisma.aiAnalysis.deleteMany({ where: { caseId: c.id } });
+      await prisma.managerDecision.deleteMany({ where: { caseId: c.id } });
+      await prisma.case.update({
+        where: { id: c.id },
+        data: { status: "new" },
+      });
+      console.log(`  ↻ ${c.id} — product changed (${existing.productModel} → ${c.productModel}); cleared stale analysis/decision`);
+    }
+
     await prisma.case.upsert({
       where: { id: c.id },
       update: {

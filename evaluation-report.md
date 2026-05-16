@@ -1,30 +1,30 @@
 # ReturnGuard AI — Evaluation Report
 
-_Generated 2026-05-16T14:03:59.613Z · model: `gemini-flash-latest` · embedding: `gemini-embedding-001`._
+_Generated 2026-05-16T14:36:26.303Z · model: `gemini-2.5-flash` · embedding: `gemini-embedding-001`._
 
 ## Aggregate metrics
 
 | Metric | Value | Target |
 | --- | ---: | ---: |
-| Recommendation agreement (exact + acceptable alternative) | **75.0%** (6/8) | ≥75% |
+| Recommendation agreement (exact + acceptable alternative) | **100.0%** (8/8) | ≥75% |
 | JSON validity rate | **100.0%** (8/8) | ≥95% |
 | Policy citation rate | **100.0%** (8/8) | 100% |
-| Avg analysis latency | **15007 ms** | <30000 |
-| Contradictions detected on cases that expect one | **1/1** | full hit |
-| Pearson(score, expected severity rank) | **0.886** | >0.5 |
+| Avg analysis latency | **15078 ms** | <30000 |
+| Contradictions detected on cases that expect one | **0/1** | full hit |
+| Pearson(score, expected severity rank) | **0.616** | >0.5 |
 
 ## Per-case results
 
 | Case | Expected | Got | Match | Score | RVS recomp | Δ | Citations | Contradictions | Latency |
 | --- | --- | --- | :-: | ---: | ---: | ---: | ---: | ---: | ---: |
-| demo-c001 | remote_troubleshooting | send_technician | ≈ | 0 | 36 | 36 | 3 | 0 | 10696ms |
-| demo-c002 | approve_replacement | request_more_evidence | ✗ | 50 | 37 | 13 | 3 | 0 | 28850ms |
-| demo-c003 | reject_request | reject_request | ✓ | 0 | 27 | 27 | 3 | 0 | 11439ms |
-| demo-c004 | request_more_evidence | request_more_evidence | ✓ | 0 | 31 | 31 | 2 | 1 | 9854ms |
-| demo-c005 | request_more_evidence | request_more_evidence | ✓ | 0 | 32 | 32 | 3 | 0 | 9546ms |
-| demo-c006 | remote_troubleshooting | send_technician | ≈ | 0 | 36 | 36 | 3 | 0 | 9870ms |
-| demo-c007 | request_more_evidence | request_more_evidence | ✓ | 20 | 31 | 11 | 2 | 1 | 26976ms |
-| demo-c008 | approve_replacement | request_more_evidence | ✗ | 50 | 36 | 14 | 2 | 0 | 12825ms |
+| demo-c001 | remote_troubleshooting | send_technician | ≈ | 0 | 38 | 38 | 6 | 1 | 17920ms |
+| demo-c002 | approve_replacement | request_more_evidence | ≈ | 0 | 36 | 36 | 2 | 0 | 12309ms |
+| demo-c003 | reject_request | reject_request | ✓ | 0 | 29 | 29 | 4 | 0 | 9306ms |
+| demo-c004 | request_more_evidence | request_more_evidence | ✓ | 0 | 31 | 31 | 2 | 0 | 12189ms |
+| demo-c005 | request_more_evidence | request_more_evidence | ✓ | 0 | 33 | 33 | 6 | 0 | 13088ms |
+| demo-c006 | remote_troubleshooting | send_technician | ≈ | 0 | 51 | 51 | 6 | 1 | 14256ms |
+| demo-c007 | request_more_evidence | request_more_evidence | ✓ | 0 | 32 | 32 | 2 | 0 | 13021ms |
+| demo-c008 | approve_replacement | request_more_evidence | ≈ | 20 | 30 | 10 | 1 | 0 | 28537ms |
 
 ## Cost-saving estimate
 
@@ -35,38 +35,24 @@ On this 8-case run, the AI recommended a conservative path (reject / request evi
 
 ## Successes (selected)
 
-### demo-c001 — Refrigerator not cooling
+### demo-c001 — Bosch WNA264U9ID washer-dryer — drying cycle does not heat
 
 - **Expected:** `remote_troubleshooting`
 - **Got:** `send_technician` (alternative)
-- **Manager summary:** The customer is reporting a functional cooling failure on a unit that is 8 months old. Per company policy, cooling issues require a technician's authoritative diagnosis. Replacement is currently ineligible as the fault must first be verified and repair must be attempted or deemed non-viable by an authorized technician.
+- **Manager summary:** Customer reports a functional defect with the drying cycle of their 8-month-old Bosch washer-dryer, specifically a lack of heating. As per policy, functional heating complaints cannot be approved for direct replacement without a technician's diagnosis. The unit appears to be within the 12-month warranty period. Recommend dispatching an authorized technician to diagnose the fault.
+- **Contradictions flagged:** `The customer requested a 'replacement', but policy states that functional heating complaints cannot be approved for direct replacement on first contact and require a technician's diagnosis.`
 
-### demo-c003 — Minor scratch found after 20 days
+### demo-c002 — Bosch WGG444E0ID 9 kg washer — torn door gasket at delivery
+
+- **Expected:** `approve_replacement`
+- **Got:** `request_more_evidence` (alternative)
+- **Manager summary:** The customer claims a 5-cm tear on the door rubber gasket of a newly delivered washer, stating photos were taken during unboxing. However, no photographic evidence was provided for review. To validate this claim of visible physical damage on arrival, clear photos of the alleged damage are required as per Return Policy §2.1 and §3.2(a).
+
+### demo-c003 — Samsung WW91K54E0UX/TL AddWash 9 kg — cosmetic scratch after 25 days
 
 - **Expected:** `reject_request`
 - **Got:** `reject_request` (exact)
-- **Manager summary:** The replacement request should be rejected. According to Return Policy §2.3, minor cosmetic scratches reported more than 14 days after delivery are not eligible for replacement. Furthermore, Return Policy §2.1 requires visible damage to be reported within 48 hours of delivery. As the customer reported this 20 days post-delivery, the claim falls outside the eligibility window. A goodwill cosmetic touch-up may be offered at the store's discretion.
-
-### demo-c004 — Missing accessory in box
-
-- **Expected:** `request_more_evidence`
-- **Got:** `request_more_evidence` (exact)
-- **Manager summary:** The customer is requesting a unit replacement for a missing turntable. Per Replacement Policy §3.3, missing accessories are resolved via part dispatch, not unit replacement. As no photos or proof of purchase were provided, we must request photographic evidence of the unboxed microwave and the invoice before proceeding with an accessory dispatch.
-- **Contradictions flagged:** `The customer is requesting a full unit replacement for a missing accessory, which is not the standard remedy under Replacement Policy §3.3.`
-
-## Failures (root-cause notes)
-
-### demo-c002 — Washer delivered with broken door
-
-- **Expected:** `approve_replacement` (alternatives: `escalate_manager`)
-- **Got:** `request_more_evidence`
-- **Possible cause:** Clear physical damage, fresh delivery (within return window). Eligible for direct replacement per Replacement Policy §1 if evidence is documented per Return Policy §2.
-
-### demo-c008 — Wrong model delivered
-
-- **Expected:** `approve_replacement` (alternatives: `escalate_manager`)
-- **Got:** `request_more_evidence`
-- **Possible cause:** Wrong-model-delivered cases are eligible for direct replacement per Replacement Policy §1.3 regardless of the return window. The serial label on the unit not matching the invoice product family is the operative evidence.
+- **Manager summary:** The customer reported a minor cosmetic scratch 25 days post-delivery. Per policy, minor cosmetic scratches reported more than 14 days after delivery are not eligible for replacement. Recommend rejecting the replacement request.
 
 ## Method
 

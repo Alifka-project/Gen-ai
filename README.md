@@ -14,7 +14,7 @@ This repo is the 2-day MVP build of the original [project proposal](./Project%20
 - **Vercel** hosting + **Vercel Blob** storage
 - **Neon Postgres** + **pgvector** (768-dim)
 - **Prisma 6** ORM
-- **Google Gemini Flash** (multimodal, JSON mode) — `gemini-flash-latest` by default; overridable via `GEMINI_MODEL`
+- **Google Gemini 2.5 Flash** (multimodal, JSON mode) — `gemini-2.5-flash` by default; overridable via `GEMINI_MODEL`
 - **`gemini-embedding-001`** for policy embeddings (truncated to 768 dims via `outputDimensionality`)
 - **shadcn/ui** + Tailwind 3 + lucide-react + recharts
 - **Zod 4** for LLM output validation
@@ -79,6 +79,7 @@ Return/Warranty Policy KB  ─┘   └─────────────�
 | §8 System Architecture | 6 layers | See table above |
 | §9 End-to-End Workflow | 8-step case flow | wired across `app/api/cases/**` |
 | §10 Modules A-F | 6 conceptual modules | folded into single Gemini call producing one Appendix-A JSON (see `lib/ai/schema.ts`) |
+| Catalogue alignment | Bosch + Samsung product list | `data/products/catalogue.ts` (28 SKUs) extracted from `Bosch washing machine catalogue.pdf` + `Samsung catalogue.pdf`; surfaced at `/products`. Case intake is restricted to these model codes (Zod refine in `lib/catalogue.ts` enforces it both client-side via the dropdown and server-side in POST `/api/cases`). The Gemini prompt receives the catalogue product context as a grounding block (brand, series, capacity, RPM, estimated retail value), so the analysis is model-aware rather than brand-agnostic. |
 | §11.2 Chunking | 300-600 tokens, 50-100 overlap | by-section split in `lib/ai/index-policies.ts` |
 | §11.3 Retrieval Formula | Cosine similarity | pgvector `<=>` operator in `lib/ai/retrieve.ts` |
 | §11.4 RAG Guardrails | 5 safety rules | `SYSTEM_PROMPT` in `lib/ai/prompts.ts` + Zod `relevant_sections.min(1)` |
@@ -134,7 +135,7 @@ cp .env.example .env.local   # Next.js dev runtime reads this
 | `BLOB_READ_WRITE_TOKEN` | Vercel dashboard → Storage → Blob (or `vercel env pull .env.local` after linking) |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` for dev |
 
-Optional overrides: `GEMINI_MODEL` (default `gemini-flash-latest`) and `GEMINI_EMBEDDING_MODEL` (default `gemini-embedding-001`). For a stable pin instead of `latest`, use `gemini-2.5-flash`.
+Optional overrides: `GEMINI_MODEL` (default `gemini-2.5-flash` — gives 250 RPD on free tier) and `GEMINI_EMBEDDING_MODEL` (default `gemini-embedding-001`). `gemini-flash-latest` resolves to a preview model with only 20 RPD; not recommended.
 
 ### 4. Enable pgvector and migrate
 
@@ -224,7 +225,7 @@ The `next.config.mjs` includes the policy markdown files in the `/api/policies/r
 
 **No, no training is required.** Per proposal §7 and §7.1, the project uses pre-trained foundation models:
 
-- **Gemini Flash (`gemini-flash-latest`)** for the multimodal reasoning call (hosted, no training; resolves currently to `gemini-3-flash-preview`)
+- **Gemini 2.5 Flash** for the multimodal reasoning call (hosted, no training)
 - **`gemini-embedding-001`** for policy embeddings (hosted, no training; truncated to 768 dims)
 
 The only "training-like" step is `pnpm index-policies`, which embeds the 9 policy chunks once and stores the vectors in `PolicyChunk.embedding`. This takes ~5 seconds and runs against Gemini's hosted embedding API.

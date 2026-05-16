@@ -11,10 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CATALOGUE, groupByBrand, productLabel } from "@/lib/catalogue";
+
+const CATALOGUE_CODES = new Set(CATALOGUE.map((p) => p.modelCode));
+const BRAND_GROUPS = groupByBrand();
 
 const schema = z.object({
   customerName: z.string().min(1, "Required").max(200),
-  productModel: z.string().min(1, "Required").max(200),
+  productModel: z
+    .string()
+    .min(1, "Pick a product from the catalogue")
+    .refine((v) => CATALOGUE_CODES.has(v), {
+      message: "Product not in catalogue — see /products for the full list",
+    }),
   serialNumber: z.string().max(200).optional(),
   complaintText: z.string().min(10, "Describe the complaint in at least 10 characters").max(4000),
   requestedAction: z.enum(["replacement", "refund", "repair"]),
@@ -120,15 +129,40 @@ export function CaseIntakeForm() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium">Product model</label>
-            <Input {...register("productModel")} placeholder="e.g. RX-450 Refrigerator" />
+            <label className="text-sm font-medium">Product model (from catalogue)</label>
+            <select
+              {...register("productModel")}
+              defaultValue=""
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="" disabled>
+                — Select a Bosch or Samsung model —
+              </option>
+              {(Object.keys(BRAND_GROUPS) as Array<keyof typeof BRAND_GROUPS>).map((brand) => (
+                <optgroup key={brand} label={brand}>
+                  {BRAND_GROUPS[brand].map((p) => (
+                    <option key={p.modelCode} value={p.modelCode}>
+                      {productLabel(p)}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
             {errors.productModel ? (
               <p className="text-xs text-red-600 mt-1">{errors.productModel.message}</p>
-            ) : null}
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Only products in the company catalogue can be analysed. See{" "}
+                <a className="underline" href="/products" target="_blank" rel="noreferrer">
+                  /products
+                </a>{" "}
+                for the full list.
+              </p>
+            )}
           </div>
           <div>
             <label className="text-sm font-medium">Serial number (optional)</label>
-            <Input {...register("serialNumber")} placeholder="e.g. RX450-2024-001" />
+            <Input {...register("serialNumber")} placeholder="e.g. WGG444-2024-018" />
           </div>
         </div>
 

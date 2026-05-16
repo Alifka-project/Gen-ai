@@ -4,6 +4,7 @@ import { RoleSwitcher } from "@/components/role-switcher";
 const NAV = [
   { href: "/", label: "Cases" },
   { href: "/cases/new", label: "New case" },
+  { href: "/products", label: "Products" },
   { href: "/analytics", label: "Analytics" },
   { href: "/policies", label: "Policies" },
 ];

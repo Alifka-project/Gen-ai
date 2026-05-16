@@ -2,12 +2,20 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { recordAudit } from "@/lib/db/audit";
+import { isInCatalogue } from "@/lib/catalogue";
 
 export const dynamic = "force-dynamic";
 
 const createCaseSchema = z.object({
   customerName: z.string().min(1).max(200),
-  productModel: z.string().min(1).max(200),
+  productModel: z
+    .string()
+    .min(1)
+    .max(200)
+    .refine((v) => isInCatalogue(v), {
+      message:
+        "productModel is not in the approved Bosch / Samsung catalogue. See /products for the supported model codes.",
+    }),
   serialNumber: z.string().max(200).nullable().optional(),
   complaintText: z.string().min(1).max(4000),
   requestedAction: z.enum(["replacement", "refund", "repair"]),

@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c003",
-  "title": "Minor scratch found after 20 days",
+  "title": "Samsung WW91K54E0UX/TL AddWash 9 kg — cosmetic scratch after 25 days",
+  "productModel": "WW91K54E0UX/TL",
   "expectedRecommendation": "reject_request",
   "acceptableAlternatives": ["escalate_manager"],
   "expectsContradiction": false,
   "expectedCategory": "cosmetic",
-  "notes": "Cosmetic scratch reported outside the 14-day return window per Return Policy §2.3. Not eligible for replacement; may be offered goodwill touch-up."
+  "notes": "Small cosmetic scratch reported outside the 14-day return window. Return Policy §2.3 excludes cosmetic claims after the window; not eligible for direct replacement. Goodwill cosmetic touch-up may be offered at the manager's discretion."
 }

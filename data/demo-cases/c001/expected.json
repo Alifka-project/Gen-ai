@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c001",
-  "title": "Refrigerator not cooling",
+  "title": "Bosch WNA264U9ID washer-dryer — drying cycle does not heat",
+  "productModel": "WNA264U9ID",
   "expectedRecommendation": "remote_troubleshooting",
   "acceptableAlternatives": ["send_technician", "request_more_evidence"],
   "expectsContradiction": false,
   "expectedCategory": "functional_issue",
-  "notes": "Functional defect (cooling failure). Photographic evidence cannot prove a thermal fault — must route to remote troubleshoot or technician dispatch per Warranty Policy §3 and Replacement Policy §2."
+  "notes": "Functional defect (drying not heating) on a washer-dryer combo. Per Warranty Policy §3 / Replacement Policy §2.1, thermal complaints cannot be confirmed by photographs — must route to remote troubleshooting (check program selection, drain hose, heat-pump filter) or technician dispatch."
 }

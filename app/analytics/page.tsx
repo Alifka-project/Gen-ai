@@ -5,12 +5,14 @@ import {
   avoidedCostPerCase,
   COST_SAVING_RECOMMENDATIONS,
   projectedMonthlySaving,
+  resolveProductValueAed,
 } from "@/lib/cost";
+import { DEFAULT_PRODUCT_VALUE_AED } from "@/lib/catalogue";
 import { RecommendationBadge } from "@/components/recommendation-badge";
 
 export const dynamic = "force-dynamic";
 
-const FALLBACK_PRODUCT_VALUE_AED = 2500;
+const FALLBACK_PRODUCT_VALUE_AED = DEFAULT_PRODUCT_VALUE_AED;
 const MONTHLY_VOLUME_MULTIPLIER = 4;
 
 export default async function AnalyticsPage() {
@@ -21,7 +23,12 @@ export default async function AnalyticsPage() {
       _count: { _all: true },
     }),
     prisma.aiAnalysis.findMany({
-      select: { recommendation: true, explanationJson: true, latencyMs: true },
+      select: {
+        recommendation: true,
+        explanationJson: true,
+        latencyMs: true,
+        case: { select: { productModel: true } },
+      },
     }),
   ]);
 
@@ -39,10 +46,10 @@ export default async function AnalyticsPage() {
         ((a.explanationJson as Record<string, unknown> | null)
           ?.document_analysis as Record<string, unknown> | undefined)
           ?.product_value_aed;
-      const value =
-        typeof productValue === "number"
-          ? productValue
-          : FALLBACK_PRODUCT_VALUE_AED;
+      const value = resolveProductValueAed(
+        typeof productValue === "number" ? productValue : null,
+        a.case?.productModel
+      );
       totalAvoidedAed += avoidedCostPerCase(value);
     }
   }

@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c006",
-  "title": "AC noisy and vibrating",
+  "title": "Bosch WGG454E0ID 10 kg — excessive vibration / noise on spin",
+  "productModel": "WGG454E0ID",
   "expectedRecommendation": "remote_troubleshooting",
   "acceptableAlternatives": ["send_technician"],
   "expectsContradiction": false,
   "expectedCategory": "functional_issue",
-  "notes": "Vibration/noise complaint = mechanical functional defect. Replacement Policy §2.1 requires technician dispatch (or remote troubleshoot first if symptom is interpretable). Photos are not sufficient evidence."
+  "notes": "Mechanical vibration / noise is a functional defect that cannot be diagnosed from photos (Replacement Policy §2.1). Remote troubleshoot first (check transit bolts, levelling, load distribution); if not resolved, dispatch technician."
 }

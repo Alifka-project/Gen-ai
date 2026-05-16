@@ -23,6 +23,7 @@ export type UserPromptInput = {
   complaintText: string;
   requestedAction: string;
   retrievedPolicy: { policyName: string; sectionRef: string; chunkText: string }[];
+  productContext?: string; // optional — catalogue-grounded product details
 };
 
 export function buildUserPrompt(input: UserPromptInput): string {
@@ -36,12 +37,16 @@ export function buildUserPrompt(input: UserPromptInput): string {
           )
           .join("\n\n");
 
+  const productBlock = input.productContext
+    ? `PRODUCT DETAILS (from company catalogue — authoritative; use these instead of guessing):\n${input.productContext}\n\n`
+    : "";
+
   return `Analyze the following case.
 
 CASE METADATA:
 ${JSON.stringify(input.caseMetadata, null, 2)}
 
-CUSTOMER COMPLAINT:
+${productBlock}CUSTOMER COMPLAINT:
 "${input.complaintText}"
 
 REQUESTED ACTION: ${input.requestedAction}

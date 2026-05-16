@@ -9,6 +9,7 @@ import { analyzeMultimodal, FLASH_MODEL, type GeminiInlineFile } from "./gemini"
 import { SYSTEM_PROMPT, buildUserPrompt, REPAIR_INSTRUCTION } from "./prompts";
 import { aiAnalysisSchema, type AiAnalysisJson } from "./schema";
 import { computeRVS, rvsDelta } from "./score";
+import { productContextBlock } from "@/lib/catalogue";
 
 export type AnalyzeResult = {
   analysis: AiAnalysisJson;
@@ -91,6 +92,7 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
       sectionRef: c.sectionRef,
       chunkText: c.chunkText,
     })),
+    productContext: productContextBlock(caseRow.productModel),
   });
 
   // 3. Call Gemini (with one repair retry on invalid JSON).

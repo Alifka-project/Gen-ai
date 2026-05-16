@@ -3,7 +3,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import type { AiAnalysisJson } from "@/lib/ai/schema";
-import { avoidedCostPerCase } from "@/lib/cost";
+import { avoidedCostPerCase, resolveProductValueAed } from "@/lib/cost";
 
 type RetrievedChunk = {
   id: string;
@@ -21,18 +21,23 @@ type Document = {
 
 export function DashboardTabs({
   complaintText,
+  productModel,
   analysis,
   documents,
   retrievedChunks,
 }: {
   complaintText: string;
+  productModel: string;
   analysis: AiAnalysisJson;
   documents: Document[];
   retrievedChunks: RetrievedChunk[];
 }) {
   const images = documents.filter((d) => d.mimeType.startsWith("image/"));
   const nonImages = documents.filter((d) => !d.mimeType.startsWith("image/"));
-  const productValue = analysis.document_analysis.product_value_aed ?? 2500;
+  const productValue = resolveProductValueAed(
+    analysis.document_analysis.product_value_aed,
+    productModel
+  );
   const estimatedSaving = avoidedCostPerCase(productValue);
 
   return (

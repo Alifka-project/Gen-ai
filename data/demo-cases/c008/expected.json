@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c008",
-  "title": "Wrong model delivered",
+  "title": "Samsung wrong model delivered — ordered WW10N641RBX/TL, delivered WW70K54E0YW/TL",
+  "productModel": "WW70K54E0YW/TL",
   "expectedRecommendation": "approve_replacement",
-  "acceptableAlternatives": ["escalate_manager"],
+  "acceptableAlternatives": ["escalate_manager", "request_more_evidence"],
   "expectsContradiction": false,
   "expectedCategory": "visible_damage",
-  "notes": "Wrong-model-delivered cases are eligible for direct replacement per Replacement Policy §1.3 regardless of the return window. The serial label on the unit not matching the invoice product family is the operative evidence."
+  "notes": "Wrong-model-delivered case. Replacement Policy §1.3 makes this eligible for direct replacement with the originally ordered model regardless of the return window. The serial label on the delivered unit (WW70K54E0YW/TL) does not match the invoice's product code (WW10N641RBX/TL)."
 }

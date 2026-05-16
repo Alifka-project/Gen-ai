@@ -1,9 +1,10 @@
 {
   "caseId": "demo-c004",
-  "title": "Missing accessory in box",
+  "title": "Samsung WW10N641RBX/TL Q-Rator 10 kg — missing detergent dispenser drawer",
+  "productModel": "WW10N641RBX/TL",
   "expectedRecommendation": "request_more_evidence",
   "acceptableAlternatives": ["escalate_manager"],
   "expectsContradiction": false,
   "expectedCategory": "missing_accessory",
-  "notes": "Missing-accessory handling per Replacement Policy §3.3 requires photographic evidence of unboxed contents before dispatching the missing part."
+  "notes": "Missing-accessory claims under Replacement Policy §3.3 require a photo of the unboxed contents before dispatching the replacement part. Handled as accessory dispatch, not full replacement."
 }
