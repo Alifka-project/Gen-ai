@@ -1,0 +1,9 @@
+{
+  "caseId": "demo-c005",
+  "title": "Defective claim with no evidence",
+  "expectedRecommendation": "request_more_evidence",
+  "acceptableAlternatives": ["remote_troubleshooting", "escalate_manager"],
+  "expectsContradiction": false,
+  "expectedCategory": "functional_issue",
+  "notes": "Vague defect claim with no photo, video, or symptom description. AI must request a video, the error code, or a remote troubleshoot session before any action."
+}

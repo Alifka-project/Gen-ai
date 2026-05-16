@@ -1,0 +1,9 @@
+{
+  "caseId": "demo-c008",
+  "title": "Wrong model delivered",
+  "expectedRecommendation": "approve_replacement",
+  "acceptableAlternatives": ["escalate_manager"],
+  "expectsContradiction": false,
+  "expectedCategory": "visible_damage",
+  "notes": "Wrong-model-delivered cases are eligible for direct replacement per Replacement Policy §1.3 regardless of the return window. The serial label on the unit not matching the invoice product family is the operative evidence."
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "demo-c004",
+  "title": "Missing accessory in box",
+  "expectedRecommendation": "request_more_evidence",
+  "acceptableAlternatives": ["escalate_manager"],
+  "expectsContradiction": false,
+  "expectedCategory": "missing_accessory",
+  "notes": "Missing-accessory handling per Replacement Policy §3.3 requires photographic evidence of unboxed contents before dispatching the missing part."
+}

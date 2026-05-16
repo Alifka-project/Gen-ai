@@ -1,0 +1,9 @@
+{
+  "caseId": "demo-c001",
+  "title": "Refrigerator not cooling",
+  "expectedRecommendation": "remote_troubleshooting",
+  "acceptableAlternatives": ["send_technician", "request_more_evidence"],
+  "expectsContradiction": false,
+  "expectedCategory": "functional_issue",
+  "notes": "Functional defect (cooling failure). Photographic evidence cannot prove a thermal fault — must route to remote troubleshoot or technician dispatch per Warranty Policy §3 and Replacement Policy §2."
+}

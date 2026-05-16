@@ -1,0 +1,9 @@
+{
+  "caseId": "demo-c006",
+  "title": "AC noisy and vibrating",
+  "expectedRecommendation": "remote_troubleshooting",
+  "acceptableAlternatives": ["send_technician"],
+  "expectsContradiction": false,
+  "expectedCategory": "functional_issue",
+  "notes": "Vibration/noise complaint = mechanical functional defect. Replacement Policy §2.1 requires technician dispatch (or remote troubleshoot first if symptom is interpretable). Photos are not sufficient evidence."
+}

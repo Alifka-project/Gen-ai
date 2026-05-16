@@ -1,0 +1,9 @@
+{
+  "caseId": "demo-c002",
+  "title": "Washer delivered with broken door",
+  "expectedRecommendation": "approve_replacement",
+  "acceptableAlternatives": ["escalate_manager"],
+  "expectsContradiction": false,
+  "expectedCategory": "visible_damage",
+  "notes": "Clear physical damage, fresh delivery (within return window). Eligible for direct replacement per Replacement Policy §1 if evidence is documented per Return Policy §2."
+}
