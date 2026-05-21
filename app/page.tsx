@@ -296,12 +296,15 @@ export default async function CasesPage() {
                       damageType={valid?.visual_analysis.damage_type}
                       claimImageConsistency={valid?.visual_analysis.claim_image_consistency}
                       serialNumberVisible={valid?.visual_analysis.serial_number_visible}
+                      damageRegions={valid?.visual_analysis.damage_regions ?? []}
                       invoiceValid={valid?.document_analysis.invoice_valid}
                       warrantyStatus={valid?.document_analysis.warranty_status}
                       returnWindowStatus={valid?.document_analysis.return_window_status}
                       productValueAed={valid?.document_analysis.product_value_aed}
                       relevantSections={valid?.policy_analysis.relevant_sections}
                       policyResult={valid?.policy_analysis.policy_result}
+                      multiModel={valid?.multi_model as never}
+                      evidenceInspected={valid?.evidence_inspected as never}
                     />
                   );
                 })}

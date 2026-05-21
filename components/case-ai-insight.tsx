@@ -1,13 +1,75 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Brain, Shield, Eye, FileText, Cpu, FileCheck, AlertTriangle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Brain,
+  Shield,
+  Eye,
+  FileText,
+  Cpu,
+  FileCheck,
+  AlertTriangle,
+  Crosshair,
+  Users,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type RetrievedChunk = {
   policyName: string;
   sectionRef: string;
   score: number;
+};
+
+type DamageRegion = {
+  region: string;
+  description: string;
+  severity: string;
+  visible_in_images: number[];
+};
+
+type MultiModelInfo = {
+  primary_model: string;
+  secondary_model: string;
+  secondary_recommendation: string;
+  secondary_score: number;
+  secondary_summary: string;
+  consensus: {
+    actionsMatch: boolean;
+    scoreDelta: number;
+    level: "high" | "medium" | "low";
+    resolution: string;
+    summary: string;
+    matchPct: number;
+  };
+  critic?: {
+    agrees_with_primary: boolean;
+    confidence: number;
+    disputed_fields: string[];
+    critique: string;
+    alternate_recommendation: string | null;
+    model_used: string;
+  };
+};
+
+type GuardEvent = {
+  field: string;
+  original: unknown;
+  enforced: unknown;
+  reason: string;
+};
+
+type EvidenceInspectedInfo = {
+  imageCount: number;
+  pdfCount: number;
+  pdfPagesRead: number;
+  pdfCharsExtracted: number;
+  scannedPdfCount: number;
+  policyChunksRetrieved: number;
+  guardEvents: GuardEvent[];
 };
 
 type AiInsightProps = {
@@ -30,6 +92,7 @@ type AiInsightProps = {
   damageType?: string;
   claimImageConsistency?: string;
   serialNumberVisible?: boolean;
+  damageRegions?: DamageRegion[];
   // Document analysis
   invoiceValid?: boolean | null;
   warrantyStatus?: string;
@@ -38,6 +101,9 @@ type AiInsightProps = {
   // Policy
   relevantSections?: string[];
   policyResult?: string;
+  // Multi-agent ensemble
+  multiModel?: MultiModelInfo;
+  evidenceInspected?: EvidenceInspectedInfo;
 };
 
 const RVS_WEIGHTS = [
@@ -67,12 +133,15 @@ export function CaseAiInsight({
   damageType,
   claimImageConsistency,
   serialNumberVisible,
+  damageRegions = [],
   invoiceValid,
   warrantyStatus,
   returnWindowStatus,
   productValueAed,
   relevantSections = [],
   policyResult,
+  multiModel,
+  evidenceInspected,
 }: AiInsightProps) {
   const [open, setOpen] = useState(false);
 
@@ -141,6 +210,30 @@ export function CaseAiInsight({
           )}
           {modelUsed && <Chip label={modelUsed} color="blue" />}
           {latencyMs && <Chip label={`${latencyMs}ms`} color="slate" />}
+          {multiModel ? (
+            <Chip
+              label={`Ensemble: ${multiModel.consensus.level} consensus (${multiModel.consensus.matchPct}%)`}
+              color={
+                multiModel.consensus.level === "high"
+                  ? "emerald"
+                  : multiModel.consensus.level === "medium"
+                    ? "amber"
+                    : "red"
+              }
+            />
+          ) : null}
+          {multiModel?.critic ? (
+            <Chip
+              label={`Critic: ${multiModel.critic.agrees_with_primary ? "agrees" : "DISPUTES"} (${multiModel.critic.confidence}%)`}
+              color={multiModel.critic.agrees_with_primary ? "emerald" : "red"}
+            />
+          ) : null}
+          {evidenceInspected ? (
+            <Chip
+              label={`Evidence: ${evidenceInspected.imageCount} img · ${evidenceInspected.pdfCount} pdf`}
+              color="slate"
+            />
+          ) : null}
         </div>
       </div>
 
@@ -149,32 +242,321 @@ export function CaseAiInsight({
         <div className="border-t border-slate-100 divide-y divide-slate-100">
           {/* Method explanation */}
           <div className="px-4 py-3">
-            <SectionHeader icon={<Cpu className="size-3.5" />} label="AI Method & Pipeline" />
-            <div className="mt-2 grid grid-cols-1 md:grid-cols-5 gap-1.5">
+            <SectionHeader icon={<Cpu className="size-3.5" />} label="AI Method & Pipeline (Multi-Agent, Multi-Model)" />
+            <div className="mt-2 grid grid-cols-2 md:grid-cols-6 gap-1.5">
               {[
-                "1. Complaint Text",
-                "2. RAG Retrieval (pgvector)",
-                "3. Multimodal GPT-4o",
-                "4. Zod Validation",
-                "5. RVS Scoring",
-              ].map((step, i) => (
+                { n: 1, label: "RAG · pgvector top-5", color: "blue" },
+                { n: 2, label: "Primary · GPT-4o vision", color: "violet" },
+                { n: 3, label: "Secondary · Claude Sonnet 4.5", color: "orange" },
+                { n: 4, label: "Evidence guards", color: "emerald" },
+                { n: 5, label: "Critic · GPT-4o", color: "red" },
+                { n: 6, label: "Consensus arbiter", color: "amber" },
+              ].map((step) => (
                 <div
-                  key={i}
-                  className="flex items-center gap-1.5 bg-blue-50 rounded px-2 py-1.5 text-[10px] font-medium text-blue-800"
+                  key={step.n}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded px-2 py-1.5 text-[10px] font-medium",
+                    step.color === "blue" && "bg-blue-50 text-blue-800",
+                    step.color === "violet" && "bg-violet-50 text-violet-800",
+                    step.color === "orange" && "bg-orange-50 text-orange-800",
+                    step.color === "emerald" && "bg-emerald-50 text-emerald-800",
+                    step.color === "red" && "bg-red-50 text-red-800",
+                    step.color === "amber" && "bg-amber-50 text-amber-800"
+                  )}
                 >
-                  <span className="size-4 rounded-full bg-blue-200 text-blue-800 flex items-center justify-center font-bold shrink-0 text-[9px]">
-                    {i + 1}
+                  <span
+                    className={cn(
+                      "size-4 rounded-full flex items-center justify-center font-bold shrink-0 text-[9px]",
+                      step.color === "blue" && "bg-blue-200",
+                      step.color === "violet" && "bg-violet-200",
+                      step.color === "orange" && "bg-orange-200",
+                      step.color === "emerald" && "bg-emerald-200",
+                      step.color === "red" && "bg-red-200",
+                      step.color === "amber" && "bg-amber-200"
+                    )}
+                  >
+                    {step.n}
                   </span>
-                  {step.replace(/^\d\. /, "")}
+                  {step.label}
                 </div>
               ))}
             </div>
             <p className="text-[10px] text-slate-400 mt-2">
-              The complaint text and uploaded images/PDFs are embedded (text-embedding-3-small, 768 dims).
-              Top-5 policy chunks are retrieved via cosine similarity. GPT-4o performs
-              multimodal reasoning and outputs structured JSON validated by Zod schema.
+              Complaint + product context + uploaded evidence run through TWO model
+              families in parallel (GPT-4o + Claude Sonnet 4.5). A GPT-4o critic
+              reviews the primary&apos;s output. The consensus arbiter compares the
+              two analyzers; if they disagree, the system promotes to the safer
+              action. Evidence guards null any field whose underlying input was
+              missing.
             </p>
           </div>
+
+          {/* ── MULTI-MODEL ENSEMBLE ── */}
+          {multiModel ? (
+            <div className="px-4 py-3">
+              <SectionHeader
+                icon={<Users className="size-3.5 text-violet-600" />}
+                label="Multi-Model Ensemble — Two Independent Verdicts"
+              />
+              <div className="mt-2 grid md:grid-cols-2 gap-2">
+                <div className="rounded-lg border border-violet-200 bg-violet-50 p-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-violet-700">
+                    Primary · {multiModel.primary_model}
+                  </p>
+                  <p className="text-[11px] mt-1">
+                    Action:{" "}
+                    <code className="font-mono bg-white px-1 rounded">
+                      {/* The top-level recommendation may have been promoted by consensus */}
+                      shown in the badge above
+                    </code>
+                  </p>
+                  <p className="text-[10px] text-violet-800 mt-0.5">
+                    RVS: <strong>{score}</strong> · this row drives the final
+                    recommendation after guards + consensus
+                  </p>
+                </div>
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-orange-700">
+                    Secondary · {multiModel.secondary_model}
+                  </p>
+                  <p className="text-[11px] mt-1">
+                    Action:{" "}
+                    <code className="font-mono bg-white px-1 rounded">
+                      {multiModel.secondary_recommendation}
+                    </code>
+                  </p>
+                  <p className="text-[10px] text-orange-800 mt-0.5">
+                    RVS: <strong>{multiModel.secondary_score}</strong>
+                  </p>
+                </div>
+              </div>
+              <div
+                className={cn(
+                  "mt-2 rounded-lg border p-2.5 flex items-start gap-2",
+                  multiModel.consensus.level === "high" &&
+                    "border-emerald-200 bg-emerald-50",
+                  multiModel.consensus.level === "medium" &&
+                    "border-amber-200 bg-amber-50",
+                  multiModel.consensus.level === "low" &&
+                    "border-red-200 bg-red-50"
+                )}
+              >
+                {multiModel.consensus.actionsMatch ? (
+                  <CheckCircle2
+                    className={cn(
+                      "size-4 shrink-0 mt-0.5",
+                      multiModel.consensus.level === "high"
+                        ? "text-emerald-600"
+                        : "text-amber-600"
+                    )}
+                  />
+                ) : (
+                  <AlertTriangle className="size-4 text-red-600 shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1">
+                  <p
+                    className={cn(
+                      "text-[11px] font-semibold",
+                      multiModel.consensus.level === "high"
+                        ? "text-emerald-900"
+                        : multiModel.consensus.level === "medium"
+                          ? "text-amber-900"
+                          : "text-red-900"
+                    )}
+                  >
+                    Consensus: {multiModel.consensus.level.toUpperCase()} —{" "}
+                    {multiModel.consensus.matchPct}% field agreement · score
+                    delta {multiModel.consensus.scoreDelta}
+                  </p>
+                  <p className="text-[10px] text-slate-700 mt-0.5">
+                    {multiModel.consensus.summary}
+                  </p>
+                </div>
+              </div>
+
+              {multiModel.secondary_summary ? (
+                <div className="mt-2 rounded-lg bg-slate-50 border border-slate-200 p-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    Secondary&apos;s manager summary
+                  </p>
+                  <p className="text-[10px] text-slate-700 mt-1 leading-relaxed">
+                    {multiModel.secondary_summary}
+                  </p>
+                </div>
+              ) : null}
+
+              {multiModel.critic ? (
+                <div
+                  className={cn(
+                    "mt-2 rounded-lg border p-2.5",
+                    multiModel.critic.agrees_with_primary
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-red-200 bg-red-50"
+                  )}
+                >
+                  <div className="flex items-start gap-2">
+                    {multiModel.critic.agrees_with_primary ? (
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="size-4 text-red-600 shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p
+                        className={cn(
+                          "text-[11px] font-semibold",
+                          multiModel.critic.agrees_with_primary
+                            ? "text-emerald-900"
+                            : "text-red-900"
+                        )}
+                      >
+                        Critic ({multiModel.critic.model_used}):{" "}
+                        {multiModel.critic.agrees_with_primary
+                          ? "agrees with primary"
+                          : "disputes primary"}{" "}
+                        — confidence {multiModel.critic.confidence}%
+                      </p>
+                      <p className="text-[10px] text-slate-700 mt-0.5">
+                        {multiModel.critic.critique}
+                      </p>
+                      {multiModel.critic.disputed_fields.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {multiModel.critic.disputed_fields.map((f, i) => (
+                            <span
+                              key={i}
+                              className="text-[9px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-mono"
+                            >
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {multiModel.critic.alternate_recommendation ? (
+                        <p className="text-[10px] text-red-900 mt-1">
+                          <strong>Critic&apos;s alternate:</strong>{" "}
+                          <code className="font-mono">
+                            {multiModel.critic.alternate_recommendation}
+                          </code>
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* ── EVIDENCE PROVENANCE ── */}
+          {evidenceInspected ? (
+            <div className="px-4 py-3">
+              <SectionHeader
+                icon={<Shield className="size-3.5 text-blue-600" />}
+                label="Evidence Provenance (what the model actually inspected)"
+              />
+              <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                <DetailBox
+                  label="Images inspected"
+                  value={`${evidenceInspected.imageCount} via vision`}
+                  color={evidenceInspected.imageCount > 0 ? "emerald" : "slate"}
+                />
+                <DetailBox
+                  label="PDFs inspected"
+                  value={
+                    evidenceInspected.pdfCount > 0
+                      ? `${evidenceInspected.pdfCount} (${evidenceInspected.pdfCharsExtracted.toLocaleString()} chars)`
+                      : "none"
+                  }
+                  color={evidenceInspected.pdfCount > 0 ? "emerald" : "slate"}
+                />
+                <DetailBox
+                  label="Policy chunks (RAG)"
+                  value={`${evidenceInspected.policyChunksRetrieved} retrieved`}
+                  color="emerald"
+                />
+                <DetailBox
+                  label="Guards triggered"
+                  value={
+                    evidenceInspected.guardEvents.length === 0
+                      ? "none"
+                      : `${evidenceInspected.guardEvents.length} override(s)`
+                  }
+                  color={
+                    evidenceInspected.guardEvents.length === 0 ? "emerald" : "amber"
+                  }
+                />
+              </div>
+              {evidenceInspected.guardEvents.length > 0 ? (
+                <details className="mt-2">
+                  <summary className="text-[10px] text-amber-700 cursor-pointer hover:text-amber-900">
+                    Show {evidenceInspected.guardEvents.length} guard event(s)
+                  </summary>
+                  <ul className="mt-1.5 space-y-1">
+                    {evidenceInspected.guardEvents.map((ev, i) => (
+                      <li
+                        key={i}
+                        className="text-[10px] bg-amber-50 border border-amber-200 rounded px-2 py-1.5"
+                      >
+                        <code className="font-mono text-amber-900 font-semibold">
+                          {ev.field}
+                        </code>
+                        <span className="text-slate-600"> — {ev.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* ── DAMAGE REGIONS (vision output) ── */}
+          {damageRegions.length > 0 ? (
+            <div className="px-4 py-3">
+              <SectionHeader
+                icon={<Crosshair className="size-3.5 text-red-600" />}
+                label={`Detected Damage Regions (${damageRegions.length}) — observed by vision model`}
+              />
+              <div className="mt-2 grid md:grid-cols-2 gap-2">
+                {damageRegions.map((r, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "rounded-lg border p-2.5",
+                      r.severity === "critical" || r.severity === "high"
+                        ? "border-red-300 bg-red-50"
+                        : r.severity === "medium"
+                          ? "border-amber-300 bg-amber-50"
+                          : "border-slate-200 bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[11px] font-semibold text-slate-900">
+                        {r.region}
+                      </p>
+                      <span
+                        className={cn(
+                          "text-[9px] font-bold uppercase px-1.5 py-0.5 rounded",
+                          r.severity === "critical" && "bg-red-200 text-red-900",
+                          r.severity === "high" && "bg-red-100 text-red-800",
+                          r.severity === "medium" && "bg-amber-100 text-amber-800",
+                          r.severity === "low" && "bg-slate-200 text-slate-700"
+                        )}
+                      >
+                        {r.severity}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-700 mt-1 leading-relaxed">
+                      {r.description}
+                    </p>
+                    {r.visible_in_images.length > 0 ? (
+                      <p className="text-[9px] text-slate-500 mt-1 font-mono">
+                        visible in image{r.visible_in_images.length === 1 ? "" : "s"}:{" "}
+                        {r.visible_in_images.join(", ")}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {/* Visual Analysis */}
           {(visibleDamage !== undefined || damageType || claimImageConsistency) && (

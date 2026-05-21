@@ -29,12 +29,29 @@ A) Visual analysis is IMAGE-derived ONLY.
    - If ZERO images were attached: set visible_damage=false, damage_type="unclear",
      evidence_quality_score=0, serial_number_visible=false,
      claim_image_consistency="inconclusive", visual_uncertainty MUST start with
-     "No image evidence was provided". Do not infer visual facts from the
-     complaint text.
+     "No image evidence was provided", AND damage_regions MUST be []. Do not
+     infer visual facts from the complaint text.
    - If images were attached: every visual_analysis field must describe what
      YOU saw in those images. evidence_quality_score reflects image quality
      (lighting, focus, framing, completeness of view) — not the severity of the
      damage.
+   - DAMAGE REGIONS (damage_regions[]): for every distinct defect you can see
+     in any image, add one entry with:
+       region: textual location on the product (e.g. "front-left corner of
+               the door", "top edge of the control panel", "drum-inner-wall
+               near 3 o'clock position"). Be specific — point to the actual
+               part, not just "the front".
+       description: 1 sentence describing the defect (e.g. "5 cm horizontal
+               crack with no missing material", "rubber gasket torn at hinge",
+               "indentation approx. 2 cm deep with paint chipping").
+       severity: low / medium / high / critical for that specific region.
+       visible_in_images: 1-indexed list of the IMAGE blocks (IMAGE 1, IMAGE 2,
+               ...) where this region is visible. NEVER list an image index
+               for a region you only inferred from text — only list indices
+               where you actually saw it.
+     If images are attached but you see no damage, damage_regions = [].
+     If you cannot tell from the image, damage_regions = [] and note the
+     ambiguity in visual_uncertainty.
 
 B) Document analysis is INVOICE / DELIVERY-NOTE text ONLY.
    - If no PDF text was extracted (no DOCUMENT block or block says "no
@@ -155,7 +172,15 @@ Return a single JSON object with this exact schema (all fields required, use nul
     "evidence_quality_score": <0-100; 0 if no image attached>,
     "serial_number_visible": <bool — only true if you see the serial on an image>,
     "claim_image_consistency": "supports_claim | does_not_support_claim | inconclusive",
-    "visual_uncertainty": "describe what cannot be concluded from the images; if no image, start with 'No image evidence was provided'"
+    "visual_uncertainty": "describe what cannot be concluded from the images; if no image, start with 'No image evidence was provided'",
+    "damage_regions": [
+      {
+        "region": "<textual location on the product>",
+        "description": "<one sentence — what's wrong here>",
+        "severity": "low | medium | high | critical",
+        "visible_in_images": [1, 2]
+      }
+    ]
   },
   "document_analysis": {
     "invoice_valid": <true | false | null (null = no invoice text)>,

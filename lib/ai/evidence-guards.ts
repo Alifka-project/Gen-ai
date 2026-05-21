@@ -101,6 +101,34 @@ export function applyEvidenceGuards(
       cleaned.visual_analysis.visual_uncertainty =
         stamp + cleaned.visual_analysis.visual_uncertainty;
     }
+    // Damage regions can only come from images.
+    if (cleaned.visual_analysis.damage_regions.length > 0) {
+      events.push({
+        field: "visual_analysis.damage_regions",
+        original: `${cleaned.visual_analysis.damage_regions.length} regions`,
+        enforced: 0,
+        reason: "no image — damage regions cannot be inferred from text alone",
+      });
+      cleaned.visual_analysis.damage_regions = [];
+    }
+  } else {
+    // Image(s) attached. Drop any region whose visible_in_images is empty —
+    // that's a region the model inferred without actually pointing to an
+    // image, which violates the schema's intent.
+    const before = cleaned.visual_analysis.damage_regions.length;
+    cleaned.visual_analysis.damage_regions =
+      cleaned.visual_analysis.damage_regions.filter(
+        (r) => Array.isArray(r.visible_in_images) && r.visible_in_images.length > 0
+      );
+    const dropped = before - cleaned.visual_analysis.damage_regions.length;
+    if (dropped > 0) {
+      events.push({
+        field: "visual_analysis.damage_regions",
+        original: `${before} regions`,
+        enforced: `${cleaned.visual_analysis.damage_regions.length} regions`,
+        reason: `dropped ${dropped} region(s) with empty visible_in_images (unsupported by image evidence)`,
+      });
+    }
   }
 
   // ── DOCUMENT GUARDS ──────────────────────────────────────────────────────

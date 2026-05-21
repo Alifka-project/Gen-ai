@@ -82,6 +82,26 @@ export const aiAnalysisSchema = z.object({
     serial_number_visible: z.boolean(),
     claim_image_consistency: claimImageConsistencyEnum,
     visual_uncertainty: z.string(),
+    /** Specific damage regions identified on the product. Each entry must
+     *  refer to a real region the model OBSERVED in an attached image.
+     *  Empty array when no images are attached or no damage is visible. */
+    damage_regions: z
+      .array(
+        z.object({
+          /** Textual location on the product, e.g. "front-left door panel",
+           *  "top-right corner", "control display", "drum interior". */
+          region: z.string().min(1),
+          /** Concrete description of what is wrong in this region. */
+          description: z.string().min(1),
+          /** Severity local to this region. */
+          severity: severityEnum,
+          /** 1-indexed list of attached images in which this region is
+           *  visible. Empty list = the region was inferred from text and
+           *  must NOT be reported in damage_regions. */
+          visible_in_images: z.array(z.number().int().positive()),
+        })
+      )
+      .default([]),
   }),
   document_analysis: z.object({
     invoice_valid: z.boolean().nullable(),
