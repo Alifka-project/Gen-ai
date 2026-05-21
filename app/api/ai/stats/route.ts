@@ -115,6 +115,22 @@ export async function GET() {
       let invoiceValid: boolean | null = null;
       let warrantyStatus: string | null = null;
 
+      // Evidence provenance (added by the anti-hallucination layer)
+      let evidenceInspected: {
+        imageCount: number;
+        pdfCount: number;
+        pdfPagesRead: number;
+        pdfCharsExtracted: number;
+        scannedPdfCount: number;
+        policyChunksRetrieved: number;
+        guardEvents: Array<{
+          field: string;
+          original: unknown;
+          enforced: unknown;
+          reason: string;
+        }>;
+      } | null = null;
+
       if (parsed.success) {
         const d = parsed.data;
         clarityScore = d.complaint_analysis.clarity_score;
@@ -129,6 +145,17 @@ export async function GET() {
         contradictionsCount = d.contradictions.length;
         invoiceValid = d.document_analysis.invoice_valid;
         warrantyStatus = d.document_analysis.warranty_status;
+        if (d.evidence_inspected) {
+          evidenceInspected = {
+            imageCount: d.evidence_inspected.imageCount,
+            pdfCount: d.evidence_inspected.pdfCount,
+            pdfPagesRead: d.evidence_inspected.pdfPagesRead,
+            pdfCharsExtracted: d.evidence_inspected.pdfCharsExtracted,
+            scannedPdfCount: d.evidence_inspected.scannedPdfCount,
+            policyChunksRetrieved: d.evidence_inspected.policyChunksRetrieved,
+            guardEvents: d.evidence_inspected.guardEvents ?? [],
+          };
+        }
       }
 
       return {
@@ -159,8 +186,30 @@ export async function GET() {
         contradictionsCount,
         invoiceValid,
         warrantyStatus,
+        evidenceInspected,
       };
     });
+
+    // ── Aggregate anti-hallucination metrics across the whole dataset ──
+    let totalGuardEvents = 0;
+    let casesWithGuards = 0;
+    let totalImagesInspected = 0;
+    let totalPdfCharsExtracted = 0;
+    let totalScannedPdfs = 0;
+    const guardEventsByField: Record<string, number> = {};
+    for (const cd of caseDetails) {
+      if (cd.evidenceInspected) {
+        totalImagesInspected += cd.evidenceInspected.imageCount;
+        totalPdfCharsExtracted += cd.evidenceInspected.pdfCharsExtracted;
+        totalScannedPdfs += cd.evidenceInspected.scannedPdfCount;
+        const events = cd.evidenceInspected.guardEvents;
+        if (events.length > 0) casesWithGuards++;
+        totalGuardEvents += events.length;
+        for (const ev of events) {
+          guardEventsByField[ev.field] = (guardEventsByField[ev.field] ?? 0) + 1;
+        }
+      }
+    }
 
     const avgLatencyMs = Math.round(totalLatency / analyses.length);
     const avgScore = Math.round(totalScore / analyses.length);
@@ -194,6 +243,16 @@ export async function GET() {
       avgRetrievedChunks,
       avgChunkSimilarity,
       rvsAccuracy,
+      // Anti-hallucination aggregates (used by the AI page "Grounding" panel)
+      antiHallucination: {
+        totalGuardEvents,
+        casesWithGuards,
+        totalCases: caseDetails.length,
+        totalImagesInspected,
+        totalPdfCharsExtracted,
+        totalScannedPdfs,
+        guardEventsByField,
+      },
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";

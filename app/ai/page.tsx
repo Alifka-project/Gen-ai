@@ -68,6 +68,23 @@ type CaseDetail = {
   warrantyStatus: string | null;
 };
 
+type GuardEvent = {
+  field: string;
+  original: unknown;
+  enforced: unknown;
+  reason: string;
+};
+
+type EvidenceInspected = {
+  imageCount: number;
+  pdfCount: number;
+  pdfPagesRead: number;
+  pdfCharsExtracted: number;
+  scannedPdfCount: number;
+  policyChunksRetrieved: number;
+  guardEvents: GuardEvent[];
+};
+
 type StatsData = {
   totalAnalyses: number;
   avgLatencyMs: number;
@@ -76,12 +93,21 @@ type StatsData = {
   maxScore: number;
   recommendationCounts: Record<string, number>;
   scoreDistribution: Array<{ range: string; count: number }>;
-  caseDetails: CaseDetail[];
+  caseDetails: (CaseDetail & { evidenceInspected: EvidenceInspected | null })[];
   policyChunkCount: number;
   modelsUsed: string[];
   avgRetrievedChunks: number;
   avgChunkSimilarity: number;
   rvsAccuracy: number;
+  antiHallucination?: {
+    totalGuardEvents: number;
+    casesWithGuards: number;
+    totalCases: number;
+    totalImagesInspected: number;
+    totalPdfCharsExtracted: number;
+    totalScannedPdfs: number;
+    guardEventsByField: Record<string, number>;
+  };
 };
 
 const REC_COLORS: Record<string, string> = {
@@ -227,6 +253,14 @@ export default function AiPipelinePage() {
             <StatPill label="Policy Chunks" value={stats.policyChunkCount.toString()} icon={<FileSearch className="size-4 text-violet-500" />} />
             <StatPill label="RVS Accuracy" value={`${stats.rvsAccuracy}%`} icon={<CheckCircle2 className="size-4 text-emerald-500" />} sub="model vs computed drift ≤20" />
           </div>
+
+          {/* ── Anti-Hallucination / Evidence Provenance ── */}
+          {stats.antiHallucination ? (
+            <AntiHallucinationPanel
+              agg={stats.antiHallucination}
+              cases={stats.caseDetails}
+            />
+          ) : null}
 
           {/* Charts row */}
           <div className="grid md:grid-cols-2 gap-4">
@@ -1012,6 +1046,238 @@ function EmptyState({ label }: { label: string }) {
     <div className="py-8 text-center">
       <p className="text-sm text-slate-400">{label}</p>
     </div>
+  );
+}
+
+function AntiHallucinationPanel({
+  agg,
+  cases,
+}: {
+  agg: NonNullable<StatsData["antiHallucination"]>;
+  cases: StatsData["caseDetails"];
+}) {
+  const casesWithEvidence = cases.filter((c) => c.evidenceInspected);
+  const groundingRate =
+    agg.totalCases > 0
+      ? Math.round(((agg.totalCases - agg.casesWithGuards) / agg.totalCases) * 100)
+      : 100;
+  const fieldEntries = Object.entries(agg.guardEventsByField).sort(
+    ([, a], [, b]) => b - a
+  );
+
+  return (
+    <Card className="p-5 bg-white shadow-sm border-2 border-emerald-200">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start gap-2">
+          <Shield className="size-5 text-emerald-600 mt-0.5" />
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              Anti-Hallucination Guards — Evidence Provenance
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5 max-w-3xl">
+              Every AI score is traced back to the actual evidence that was
+              inspected. PDFs are text-extracted via{" "}
+              <code className="bg-slate-100 px-1 rounded text-[10px]">unpdf</code>;
+              images are inspected by GPT-4o Vision. After the AI returns,
+              deterministic guards null/zero any field whose underlying evidence
+              was missing (e.g. <code className="text-[10px]">product_value_aed</code>{" "}
+              cannot be set if no invoice text was extracted, regardless of what
+              the AI tried to return).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Aggregate KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500">Cases analyzed</p>
+          <p className="text-lg font-bold text-slate-900 tabular-nums">{agg.totalCases}</p>
+        </div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-emerald-700">Grounding rate</p>
+          <p className="text-lg font-bold text-emerald-900 tabular-nums">{groundingRate}%</p>
+          <p className="text-[9px] text-emerald-700/80">cases needing no override</p>
+        </div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-amber-700">Guards triggered</p>
+          <p className="text-lg font-bold text-amber-900 tabular-nums">{agg.totalGuardEvents}</p>
+          <p className="text-[9px] text-amber-700/80">across {agg.casesWithGuards} case(s)</p>
+        </div>
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-blue-700">Images inspected</p>
+          <p className="text-lg font-bold text-blue-900 tabular-nums">{agg.totalImagesInspected}</p>
+          <p className="text-[9px] text-blue-700/80">via GPT-4o Vision</p>
+        </div>
+        <div className="rounded-lg border border-violet-200 bg-violet-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-violet-700">PDF text extracted</p>
+          <p className="text-lg font-bold text-violet-900 tabular-nums">
+            {agg.totalPdfCharsExtracted.toLocaleString()}
+          </p>
+          <p className="text-[9px] text-violet-700/80">
+            chars · {agg.totalScannedPdfs} scanned
+          </p>
+        </div>
+      </div>
+
+      {/* Guard events by field */}
+      {fieldEntries.length > 0 ? (
+        <div className="mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            Fields most often overridden by anti-hallucination guards
+          </p>
+          <div className="space-y-1">
+            {fieldEntries.slice(0, 6).map(([field, count]) => (
+              <div
+                key={field}
+                className="flex items-center gap-2 text-xs"
+              >
+                <code className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 min-w-[260px]">
+                  {field}
+                </code>
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-amber-400 rounded-full"
+                    style={{
+                      width: `${Math.min(100, (count / Math.max(...fieldEntries.map(([, c]) => c))) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <span className="font-bold tabular-nums text-slate-700 w-8 text-right">
+                  {count}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 mb-4 flex items-center gap-2">
+          <CheckCircle2 className="size-4 text-emerald-600" />
+          <p className="text-xs text-emerald-900">
+            <strong>No guards triggered.</strong> Every AI output passed the
+            evidence-source validation on the first try.
+          </p>
+        </div>
+      )}
+
+      {/* Per-case provenance table */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+          Per-case evidence inspection
+        </p>
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50 text-slate-500">
+              <tr>
+                <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                  Case
+                </th>
+                <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                  Images
+                </th>
+                <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                  PDFs
+                </th>
+                <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                  PDF chars read
+                </th>
+                <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                  RVS
+                </th>
+                <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                  Guards
+                </th>
+                <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                  Override reasons (first 2)
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {casesWithEvidence.map((c) => {
+                const ei = c.evidenceInspected!;
+                const events = ei.guardEvents;
+                return (
+                  <tr key={c.caseId} className="hover:bg-slate-50/70">
+                    <td className="px-2.5 py-2">
+                      <p className="font-medium text-slate-900">{c.customerName}</p>
+                      <p className="text-[10px] font-mono text-slate-400">
+                        {c.productModel}
+                      </p>
+                    </td>
+                    <td className="px-2.5 py-2 text-center tabular-nums">
+                      {ei.imageCount > 0 ? (
+                        <span className="inline-flex items-center rounded bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-bold">
+                          {ei.imageCount}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">0</span>
+                      )}
+                    </td>
+                    <td className="px-2.5 py-2 text-center tabular-nums">
+                      {ei.pdfCount > 0 ? (
+                        <span className="inline-flex items-center rounded bg-violet-100 text-violet-800 px-1.5 py-0.5 text-[10px] font-bold">
+                          {ei.pdfCount}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">0</span>
+                      )}
+                    </td>
+                    <td className="px-2.5 py-2 text-center tabular-nums text-slate-600">
+                      {ei.pdfCharsExtracted.toLocaleString()}
+                    </td>
+                    <td className="px-2.5 py-2 text-center">
+                      <ScoreChip score={c.score} />
+                    </td>
+                    <td className="px-2.5 py-2 text-center">
+                      {events.length > 0 ? (
+                        <span className="inline-flex items-center rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-bold">
+                          {events.length}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 px-1.5 py-0.5 text-[10px] font-bold">
+                          ✓
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2.5 py-2">
+                      {events.length === 0 ? (
+                        <span className="text-emerald-700 text-[10px]">
+                          No overrides needed
+                        </span>
+                      ) : (
+                        <ul className="space-y-0.5">
+                          {events.slice(0, 2).map((ev, i) => (
+                            <li key={i} className="text-[10px] text-slate-600">
+                              <code className="font-mono text-amber-700">
+                                {ev.field.split(".").pop()}
+                              </code>
+                              : {ev.reason}
+                            </li>
+                          ))}
+                          {events.length > 2 && (
+                            <li className="text-[10px] text-slate-400">
+                              + {events.length - 2} more
+                            </li>
+                          )}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {casesWithEvidence.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-2.5 py-6 text-center text-slate-400 text-xs">
+                    No analyses with provenance data yet. Run a case through{" "}
+                    <strong>analyze</strong> to populate.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Card>
   );
 }
 
