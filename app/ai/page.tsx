@@ -8,7 +8,6 @@ import {
   Database,
   FileSearch,
   CheckCircle2,
-  ArrowRight,
   Zap,
   Target,
   BarChart3,
@@ -22,6 +21,7 @@ import {
   Info,
   Fingerprint,
   XCircle,
+  Users,
 } from "lucide-react";
 import {
   BarChart,
@@ -262,48 +262,200 @@ export default function AiPipelinePage() {
         </div>
       </div>
 
-      {/* ── 1. Pipeline Architecture Flow ── */}
+      {/* ── 1. Pipeline Architecture (7 stages) ── */}
       <Card className="p-5 bg-white shadow-sm border-slate-200">
-        <SectionHeader icon={<Layers className="size-4 text-blue-600" />} label="AI Pipeline Architecture" />
-        <p className="text-xs text-slate-500 mb-4">
-          Multimodal RAG (Retrieval-Augmented Generation) pipeline powering every case analysis.
-        </p>
-        <div className="flex flex-col md:flex-row items-stretch gap-0 overflow-x-auto">
-          {PIPELINE_STEPS.map((step, i) => (
-            <div key={i} className="flex md:flex-col items-center md:items-stretch flex-1 min-w-0">
-              <div
-                className={`flex-1 rounded-xl border-2 p-3 text-center ${step.color} relative`}
-              >
-                <div className="flex justify-center mb-1.5">{step.icon}</div>
-                <p className="text-[11px] font-bold text-slate-800 leading-tight">{step.label}</p>
-                <p className="text-[9px] text-slate-500 mt-1 leading-tight hidden md:block">{step.detail}</p>
-              </div>
-              {i < PIPELINE_STEPS.length - 1 && (
-                <div className="flex items-center justify-center shrink-0 mx-1 md:my-1 md:mx-auto">
-                  <ArrowRight className="size-4 text-slate-300 rotate-0 md:rotate-90" />
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="flex items-start justify-between mb-1">
+          <SectionHeader
+            icon={<Layers className="size-4 text-blue-600" />}
+            label="AI Pipeline — 7 Stages, Multi-Agent, Multi-Model"
+          />
+          <span className="text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full">
+            Ensemble: OpenAI · Anthropic
+          </span>
         </div>
-        {/* Step labels on small screens */}
-        <div className="md:hidden mt-3 space-y-1">
-          {PIPELINE_STEPS.map((step, i) => (
-            <div key={i} className="flex items-center gap-2 text-[10px] text-slate-500">
-              <span className="font-bold text-slate-700">Step {i + 1}:</span>
-              {step.label} — {step.detail}
-            </div>
-          ))}
+        <p className="text-xs text-slate-500 mb-4 max-w-4xl">
+          End-to-end Multimodal RAG pipeline with cross-vendor ensemble
+          verification. Stage 3 runs two model families in parallel on the same
+          evidence; Stages 4–5 add deterministic grounding and a third-model
+          critic; the consensus arbiter promotes to the safer action when the
+          two analyzers disagree.
+        </p>
+        <div className="space-y-2.5">
+          {PIPELINE_STAGES.map((stage, i) => {
+            const c = COLOR_CLASSES[stage.color];
+            return (
+              <div
+                key={i}
+                className={`rounded-xl border-2 ${c.border} ${c.bg} p-3.5 relative`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`size-7 rounded-lg ${c.iconBg} ${c.text} flex items-center justify-center shrink-0`}
+                  >
+                    {stage.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {stage.phase}
+                      </p>
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {stage.models?.map((m, mi) => (
+                          <span
+                            key={mi}
+                            className={`inline-flex items-center text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded border ${
+                              m.startsWith("OpenAI")
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                                : m.startsWith("Anthropic")
+                                  ? "bg-orange-50 border-orange-200 text-orange-800"
+                                  : "bg-slate-50 border-slate-200 text-slate-700"
+                            }`}
+                          >
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[13px] font-bold text-slate-900 leading-snug">
+                      {stage.label}
+                    </p>
+                    <p className="text-[11px] text-slate-700 mt-1 leading-relaxed">
+                      {stage.detail}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Card>
 
-      {/* ── 2. Model Configuration ── */}
+      {/* ── 2. AI Agents Architecture ── */}
+      <Card className="p-5 bg-white shadow-sm border-slate-200">
+        <SectionHeader
+          icon={<Users className="size-4 text-violet-600" />}
+          label="AI Agents — Who Does What, With Which Model"
+        />
+        <p className="text-xs text-slate-500 mb-4 max-w-4xl">
+          Each agent in the pipeline is bound to the model best suited to its
+          task. Cross-family mixing (OpenAI + Anthropic) prevents single-vendor
+          blind spots — when both families agree, confidence is high; when they
+          disagree, the system escalates.
+        </p>
+        <div className="grid md:grid-cols-2 gap-3">
+          {AGENT_CONFIGS.map((agent, i) => {
+            const c = COLOR_CLASSES[agent.color];
+            return (
+              <div
+                key={i}
+                className={`rounded-xl border ${c.border} ${c.bg} p-3.5`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`size-9 rounded-lg ${c.iconBg} ${c.text} flex items-center justify-center shrink-0`}
+                  >
+                    {agent.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-baseline justify-between gap-1 mb-1">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        {agent.role}
+                      </p>
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                          agent.provider === "OpenAI"
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                            : agent.provider === "Anthropic"
+                              ? "bg-orange-50 border-orange-300 text-orange-800"
+                              : "bg-slate-100 border-slate-300 text-slate-700"
+                        }`}
+                      >
+                        {agent.provider}
+                      </span>
+                    </div>
+                    <p className="text-[13px] font-bold text-slate-900 font-mono leading-tight">
+                      {agent.model}
+                    </p>
+                    <div className="mt-2 space-y-0.5">
+                      <p className="text-[10.5px] text-slate-700">
+                        <span className="font-semibold text-slate-900">When: </span>
+                        {agent.when}
+                      </p>
+                      <p className="text-[10.5px] text-slate-700">
+                        <span className="font-semibold text-slate-900">Why: </span>
+                        {agent.why}
+                      </p>
+                      {agent.modality ? (
+                        <p className="text-[10px] text-slate-500 font-mono mt-1">
+                          Modality: {agent.modality}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* ── 3. Theory & Methods ── */}
+      <Card className="p-5 bg-white shadow-sm border-slate-200">
+        <SectionHeader
+          icon={<Brain className="size-4 text-emerald-600" />}
+          label="Theory & Methods — The Techniques Powering Every Decision"
+        />
+        <p className="text-xs text-slate-500 mb-4 max-w-4xl">
+          Each technique used in the pipeline and how it&apos;s implemented in
+          this codebase. Every method is grounded in evidence or deterministic
+          code — no heuristic shortcuts, no synthetic data.
+        </p>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {THEORY_METHODS.map((m, i) => {
+            const c = COLOR_CLASSES[m.color];
+            return (
+              <div
+                key={i}
+                className={`rounded-lg border-2 ${c.border} ${c.bg} p-3`}
+              >
+                <div className="flex items-start gap-2 mb-2">
+                  <div
+                    className={`size-7 rounded-lg ${c.iconBg} ${c.text} flex items-center justify-center shrink-0`}
+                  >
+                    {m.icon}
+                  </div>
+                  <p className="text-[11.5px] font-bold text-slate-900 leading-tight mt-0.5">
+                    {m.title}
+                  </p>
+                </div>
+                <p className="text-[10.5px] text-slate-700 leading-relaxed">
+                  {m.summary}
+                </p>
+                <p className="text-[9.5px] text-slate-500 italic leading-relaxed mt-1.5 pt-1.5 border-t border-slate-200">
+                  ↳ {m.technique}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* ── 4. Model Configuration (provider details) ── */}
       <div className="grid md:grid-cols-2 gap-4">
         <Card className="p-5 bg-white shadow-sm border-slate-200">
-          <SectionHeader icon={<Brain className="size-4 text-violet-600" />} label="Multimodal LLM Configuration" />
-          <div className="mt-3 space-y-2">
+          <SectionHeader
+            icon={<Brain className="size-4 text-violet-600" />}
+            label="Reasoning Models — Provider Details"
+          />
+          <p className="text-xs text-slate-500 mb-3">
+            Two LLM families used in parallel for multimodal analysis.
+          </p>
+          <div className="mt-1 space-y-2">
             {MODEL_CONFIG.map((cfg) => (
-              <div key={cfg.key} className="flex items-start justify-between py-1.5 border-b border-slate-100 last:border-0">
+              <div
+                key={cfg.key}
+                className="flex items-start justify-between py-1.5 border-b border-slate-100 last:border-0"
+              >
                 <span className="text-xs text-slate-500">{cfg.key}</span>
                 <span className="text-xs font-semibold text-slate-900 text-right ml-4 font-mono">
                   {cfg.value}
@@ -314,10 +466,19 @@ export default function AiPipelinePage() {
         </Card>
 
         <Card className="p-5 bg-white shadow-sm border-slate-200">
-          <SectionHeader icon={<Database className="size-4 text-emerald-600" />} label="Embedding & Vector Store" />
-          <div className="mt-3 space-y-2">
+          <SectionHeader
+            icon={<Database className="size-4 text-emerald-600" />}
+            label="Embedding & Vector Store"
+          />
+          <p className="text-xs text-slate-500 mb-3">
+            Policy chunks are embedded once and retrieved per query.
+          </p>
+          <div className="mt-1 space-y-2">
             {EMBEDDING_CONFIG.map((cfg) => (
-              <div key={cfg.key} className="flex items-start justify-between py-1.5 border-b border-slate-100 last:border-0">
+              <div
+                key={cfg.key}
+                className="flex items-start justify-between py-1.5 border-b border-slate-100 last:border-0"
+              >
                 <span className="text-xs text-slate-500">{cfg.key}</span>
                 <span className="text-xs font-semibold text-slate-900 text-right ml-4 font-mono">
                   {cfg.value}
@@ -885,9 +1046,13 @@ export default function AiPipelinePage() {
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 flex items-start gap-2">
         <Info className="size-4 text-amber-500 shrink-0 mt-0.5" />
         <span>
-          <strong>AI output is advisory only.</strong> All pipeline outputs, scores, and recommendations
-          displayed here are generated by GPT-4o and validated by Zod schema. No automated
-          action is taken on any case without explicit manager authorisation.
+          <strong>AI output is advisory only.</strong> Every recommendation is
+          the ensemble verdict of <strong>OpenAI gpt-4o</strong> + <strong>
+            Anthropic claude-sonnet-4-5
+          </strong>, audited by a <strong>GPT-4o critic</strong>, grounded by
+          deterministic evidence guards, and validated against a strict Zod
+          schema. The system never auto-decides — the manager always makes the
+          final call.
         </span>
       </div>
     </div>
@@ -896,71 +1061,297 @@ export default function AiPipelinePage() {
 
 /* ─── Static Data ─── */
 
-const PIPELINE_STEPS = [
+const COLOR_CLASSES: Record<
+  string,
+  { bg: string; border: string; text: string; iconBg: string }
+> = {
+  violet: {
+    bg: "bg-violet-50",
+    border: "border-violet-200",
+    text: "text-violet-700",
+    iconBg: "bg-violet-100",
+  },
+  blue: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    text: "text-blue-700",
+    iconBg: "bg-blue-100",
+  },
+  emerald: {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    text: "text-emerald-700",
+    iconBg: "bg-emerald-100",
+  },
+  amber: {
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    text: "text-amber-700",
+    iconBg: "bg-amber-100",
+  },
+  orange: {
+    bg: "bg-orange-50",
+    border: "border-orange-200",
+    text: "text-orange-700",
+    iconBg: "bg-orange-100",
+  },
+  red: {
+    bg: "bg-red-50",
+    border: "border-red-200",
+    text: "text-red-700",
+    iconBg: "bg-red-100",
+  },
+  indigo: {
+    bg: "bg-indigo-50",
+    border: "border-indigo-200",
+    text: "text-indigo-700",
+    iconBg: "bg-indigo-100",
+  },
+  slate: {
+    bg: "bg-slate-50",
+    border: "border-slate-200",
+    text: "text-slate-700",
+    iconBg: "bg-slate-100",
+  },
+};
+
+type PipelineStage = {
+  phase: string;
+  label: string;
+  detail: string;
+  models?: string[];
+  color: keyof typeof COLOR_CLASSES;
+  icon: React.ReactNode;
+};
+
+const PIPELINE_STAGES: PipelineStage[] = [
   {
-    label: "Case Intake",
-    detail: "Complaint text + images + invoice submitted by CS agent",
-    icon: <FileText className="size-4 text-blue-600" />,
-    color: "bg-blue-50 border-blue-200",
+    phase: "1 · Intake",
+    label: "Case Intake + Catalogue Gate + Evidence Upload",
+    detail:
+      "Customer-service agent fills the intake form (customer name, brand/model picked from the locked catalogue, complaint text, requested action) and attaches photos + invoice PDF. Out-of-catalogue model codes are rejected at the API boundary.",
+    models: [],
+    color: "blue",
+    icon: <FileText className="size-4" />,
   },
   {
-    label: "Embedding",
-    detail: "text-embedding-3-small encodes complaint into 768-dim vector",
-    icon: <Cpu className="size-4 text-violet-600" />,
-    color: "bg-violet-50 border-violet-200",
+    phase: "2 · Retrieval (RAG)",
+    label: "Policy Knowledge Base — Vector Similarity Search",
+    detail:
+      "Query (product + complaint + requested action) is encoded into a 768-dim embedding and matched against indexed policy chunks via pgvector cosine. Top-5 chunks (return / replacement / warranty / UAE consumer protection / refund) are injected into the prompt as grounded context.",
+    models: ["OpenAI · text-embedding-3-small", "pgvector · cosine top-5"],
+    color: "indigo",
+    icon: <FileSearch className="size-4" />,
   },
   {
-    label: "RAG Retrieval",
-    detail: "pgvector cosine similarity retrieves top-5 policy chunks",
-    icon: <FileSearch className="size-4 text-indigo-600" />,
-    color: "bg-indigo-50 border-indigo-200",
+    phase: "3 · Analysis (parallel multi-model)",
+    label: "Two Independent Multimodal Analyzers — Same Inputs, Different Families",
+    detail:
+      "Both analyzers receive the SAME multimodal payload (complaint + catalogue product context + retrieved policy chunks + images via vision + invoice PDF). They produce structured JSON validated by Zod (one repair retry on invalid output). Running in parallel via Promise.all keeps latency low while doubling the verification surface.",
+    models: [
+      "OpenAI · gpt-4o (primary)",
+      "Anthropic · claude-sonnet-4-5 (secondary)",
+    ],
+    color: "violet",
+    icon: <Layers className="size-4" />,
   },
   {
-    label: "GPT-4o",
-    detail: "Multimodal analysis: complaint + images + PDFs + policy context",
-    icon: <Brain className="size-4 text-emerald-600" />,
-    color: "bg-emerald-50 border-emerald-200",
+    phase: "4 · Grounding (deterministic guards)",
+    label: "Evidence Guards + Identity Verifier",
+    detail:
+      "Pure-code post-processing enforces evidence provenance: fields with no underlying input are nulled (e.g. product_value_aed cannot be set without an actual invoice). The identity verifier runs a 3-way serial match (form / invoice OCR / photo vision OCR), product match (observed brand/type/capacity vs catalogue), customer-name fuzzy match, and EXIF metadata extraction from the first image.",
+    models: ["pure code · evidence-guards.ts", "pure code · identity-verifier.ts"],
+    color: "amber",
+    icon: <Shield className="size-4" />,
   },
   {
-    label: "Zod Validation",
-    detail: "Structured JSON output validated against schema; 1 repair retry",
-    icon: <Shield className="size-4 text-amber-600" />,
-    color: "bg-amber-50 border-amber-200",
+    phase: "5 · Arbitration",
+    label: "Critic Agent + Consensus Arbiter",
+    detail:
+      "An independent third model (GPT-4o critic with a separate prompt) reviews the primary's output and produces agrees_with_primary + confidence + disputed_fields. The consensus arbiter compares primary vs secondary across 7 dimensions (action, category, severity, visible damage, damage type, warranty, return window); when the two analyzers disagree on the action, the safer action wins (approve loses to escalate_manager).",
+    models: ["OpenAI · gpt-4o (critic)", "pure code · consensus arbiter"],
+    color: "orange",
+    icon: <Users className="size-4" />,
   },
   {
-    label: "RVS Scoring",
-    detail: "Deterministic weighted formula cross-checks AI score",
-    icon: <Target className="size-4 text-orange-600" />,
-    color: "bg-orange-50 border-orange-200",
+    phase: "6 · Scoring (RVS)",
+    label: "Replacement Validity Score — Deterministic Sanity Check",
+    detail:
+      "RVS = 0.20·clarity + 0.20·evidence_quality + 0.25·document_eligibility + 0.25·policy_compliance + 0.10·historical_context. Computed locally from the cleaned analysis and compared against the AI's self-reported score; any drift > 20 points triggers a manager warning on the case dashboard.",
+    models: ["pure code · score.ts"],
+    color: "emerald",
+    icon: <Target className="size-4" />,
   },
   {
-    label: "Recommendation",
-    detail: "Final advisory output with manager summary stored to DB",
-    icon: <CheckCircle2 className="size-4 text-slate-600" />,
-    color: "bg-slate-50 border-slate-200",
+    phase: "7 · Output (human-in-the-loop)",
+    label: "Final Recommendation + Manager Dashboard",
+    detail:
+      "Persisted to Postgres with full provenance: explanationJson (Appendix-A schema), evidence_inspected (image/PDF counts + guard events), multi_model (both verdicts + critic + consensus), identity_verification, and retrievedChunks. The manager sees everything and makes the final decision — the AI never auto-decides.",
+    models: ["Neon Postgres · audit log · manager UI"],
+    color: "slate",
+    icon: <CheckCircle2 className="size-4" />,
+  },
+];
+
+type AgentConfig = {
+  role: string;
+  model: string;
+  provider: "OpenAI" | "Anthropic" | "System";
+  when: string;
+  why: string;
+  modality?: string;
+  color: keyof typeof COLOR_CLASSES;
+  icon: React.ReactNode;
+};
+
+const AGENT_CONFIGS: AgentConfig[] = [
+  {
+    role: "Primary Analyzer",
+    model: "gpt-4o",
+    provider: "OpenAI",
+    when: "Every analysis",
+    why: "Strong multimodal vision + reasoning with strict JSON-mode for the Appendix-A schema. Drives the recommendation surfaced to the manager.",
+    modality: "Text + Image (high-detail) + PDF text (extracted via unpdf)",
+    color: "violet",
+    icon: <Brain className="size-4" />,
+  },
+  {
+    role: "Secondary Analyzer (cross-vendor)",
+    model: "claude-sonnet-4-5",
+    provider: "Anthropic",
+    when: "Every analysis (parallel with primary)",
+    why: "Different model family catches blind spots the primary can't see. Reads PDFs natively as documents (no text-extraction loss).",
+    modality: "Text + Image + Native PDF document",
+    color: "orange",
+    icon: <Brain className="size-4" />,
+  },
+  {
+    role: "Critic",
+    model: "gpt-4o",
+    provider: "OpenAI",
+    when: "After primary returns",
+    why: "Independent reviewer with a different system prompt + temperature. Flags disputed fields, returns confidence 0-100, and proposes an alternate recommendation when it disagrees.",
+    modality: "Text only (sees primary's structured output + evidence summary)",
+    color: "red",
+    icon: <Users className="size-4" />,
+  },
+  {
+    role: "Policy Embedder",
+    model: "text-embedding-3-small",
+    provider: "OpenAI",
+    when: "Once at indexing time; once per case for the retrieval query",
+    why: "Matryoshka-truncated to 768 dims to fit the pgvector(768) schema. Strong on short policy-chunk semantics; cheap (10× less than ada-002).",
+    modality: "Text → 768-dim float32 vector",
+    color: "emerald",
+    icon: <Database className="size-4" />,
+  },
+];
+
+type TheoryMethod = {
+  title: string;
+  summary: string;
+  technique: string;
+  color: keyof typeof COLOR_CLASSES;
+  icon: React.ReactNode;
+};
+
+const THEORY_METHODS: TheoryMethod[] = [
+  {
+    title: "Multimodal RAG",
+    summary:
+      "Retrieval-Augmented Generation grounds the LLM in retrieved policy chunks; the multimodal variant also feeds images and extracted PDF text into the same prompt.",
+    technique:
+      "Top-k cosine retrieval over pgvector + structured prompt assembly with labelled [PRODUCT] [POLICY] [CASE] [EVIDENCE] blocks.",
+    color: "violet",
+    icon: <FileSearch className="size-4" />,
+  },
+  {
+    title: "Multi-Agent Ensemble",
+    summary:
+      "Two analyzers from different vendors run on the same evidence in parallel. Disagreements trigger arbitration that promotes to the safer action.",
+    technique:
+      "Promise.all([gpt-4o, claude-sonnet-4-5]) + 7-dimension consensus comparison + conservative-action selection (approve loses to escalate).",
+    color: "blue",
+    icon: <Layers className="size-4" />,
+  },
+  {
+    title: "Critic Pattern",
+    summary:
+      "A third agent (different prompt + role + temperature) reviews the primary's output. Acts as an independent quality gate, never autonomous.",
+    technique:
+      "Strict critic schema: agrees_with_primary (bool) · confidence (0-100) · disputed_fields[] · alternate_recommendation | null.",
+    color: "amber",
+    icon: <Users className="size-4" />,
+  },
+  {
+    title: "Evidence-Grounded Reasoning",
+    summary:
+      "Hard rules in the prompt + deterministic guards in code forbid filling a field when no underlying evidence exists.",
+    technique:
+      "applyEvidenceGuards() nulls visual_analysis when imageCount=0; nulls invoice fields when no PDF text; caps RVS at 30 for text-only cases.",
+    color: "emerald",
+    icon: <Shield className="size-4" />,
+  },
+  {
+    title: "Vector Similarity Search",
+    summary:
+      "Policy chunks (return / replacement / warranty / UAE-specific) are embedded once and retrieved per case by cosine similarity over the 768-dim space.",
+    technique:
+      "SELECT … 1 - (embedding <=> $query) AS similarity FROM policy_chunks ORDER BY embedding <=> $query LIMIT 5; in pgvector.",
+    color: "indigo",
+    icon: <Database className="size-4" />,
+  },
+  {
+    title: "Identity Verification",
+    summary:
+      "3-way serial match (intake form + invoice OCR + photo vision OCR), product-in-photo match against the catalogue, customer-name fuzzy match, EXIF check.",
+    technique:
+      "Levenshtein similarity + alphanumeric normalisation + catalogue lookup + JPEG APP1 EXIF parser (timestamp + GPS).",
+    color: "blue",
+    icon: <Fingerprint className="size-4" />,
+  },
+  {
+    title: "Structured Output Validation",
+    summary:
+      "Every AI response is validated against a strict Zod schema; invalid output triggers one repair attempt before failure.",
+    technique:
+      "Zod 4 schema (aiAnalysisSchema) + JSON-mode (response_format: json_object) + REPAIR_INSTRUCTION on re-prompt.",
+    color: "violet",
+    icon: <CheckCircle2 className="size-4" />,
+  },
+  {
+    title: "Provenance & Audit",
+    summary:
+      "Every persisted analysis carries the inputs it was based on, the guards that fired, both analyzer verdicts, the critic verdict, and the consensus result.",
+    technique:
+      "explanationJson.evidence_inspected + .multi_model + .identity_verification + Postgres audit_log table for every state change.",
+    color: "slate",
+    icon: <Activity className="size-4" />,
   },
 ];
 
 const MODEL_CONFIG = [
-  { key: "Provider", value: "OpenAI API" },
-  { key: "Model ID", value: "gpt-4o" },
-  { key: "Capability", value: "Multimodal (text + image + PDF)" },
-  { key: "Output Format", value: "JSON (responseMimeType)" },
-  { key: "Retry Policy", value: "1 repair attempt on invalid JSON" },
-  { key: "Input modalities", value: "Text, Images (JPEG/PNG/WEBP/HEIC), PDF" },
-  { key: "Max context window", value: "1M tokens" },
-  { key: "Rate limit", value: "500 RPM / 10K RPD" },
+  { key: "Primary (OpenAI)", value: "gpt-4o · multimodal · JSON-mode" },
+  { key: "Secondary (Anthropic)", value: "claude-sonnet-4-5 · multimodal · native PDF" },
+  { key: "Critic (OpenAI)", value: "gpt-4o · text-only review of primary" },
+  { key: "Output schema", value: "Zod aiAnalysisSchema (strict)" },
+  { key: "Retry policy", value: "1 repair attempt on invalid JSON" },
+  { key: "Image formats", value: "JPEG, PNG, WebP, HEIC, GIF" },
+  { key: "PDF handling (OpenAI)", value: "unpdf text extraction → text block" },
+  { key: "PDF handling (Anthropic)", value: "native document input (no extraction)" },
+  { key: "Temperature", value: "0.1 (deterministic-leaning)" },
+  { key: "Max output tokens", value: "4096" },
 ];
 
 const EMBEDDING_CONFIG = [
-  { key: "Embedding model", value: "text-embedding-3-small" },
-  { key: "Vector dimensions", value: "768" },
+  { key: "Embedding model", value: "text-embedding-3-small (OpenAI)" },
+  { key: "Vector dimensions", value: "768 (Matryoshka truncation)" },
   { key: "Vector store", value: "Neon Postgres + pgvector" },
-  { key: "Similarity metric", value: "Cosine (1 - L2 distance)" },
-  { key: "Top-K retrieval", value: "5 chunks" },
+  { key: "Similarity metric", value: "Cosine (1 − distance)" },
+  { key: "Top-K retrieval", value: "5 chunks per case" },
+  { key: "Indexed policies", value: "7 docs (return / replacement / warranty + UAE-specific)" },
   { key: "Indexing command", value: "pnpm index-policies" },
-  { key: "ORM", value: "Prisma with Neon adapter" },
-  { key: "Validation", value: "Zod schema (aiAnalysisSchema)" },
+  { key: "ORM", value: "Prisma 6 + @prisma/adapter-neon (HTTPS)" },
 ];
 
 const RVS_FACTORS = [
