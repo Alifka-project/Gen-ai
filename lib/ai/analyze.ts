@@ -1,15 +1,21 @@
 // lib/ai/analyze.ts
 // Orchestrator: load case → retrieve policy → fetch files → call GPT-4o →
-// validate with Zod (one repair retry) → compute RVS → persist AiAnalysis.
-// Brief §6.
+// validate with Zod (one repair retry) → APPLY EVIDENCE GUARDS → compute RVS →
+// persist AiAnalysis (with provenance block). Brief §6.
 
 import { prisma } from "@/lib/db/prisma";
 import { retrieveTopK, type RetrievedChunk } from "./retrieve";
-import { analyzeMultimodal, FLASH_MODEL, type GeminiInlineFile } from "./gemini";
+import {
+  analyzeMultimodal,
+  FLASH_MODEL,
+  type GeminiInlineFile,
+  type EvidenceInspection,
+} from "./gemini";
 import { SYSTEM_PROMPT, buildUserPrompt, REPAIR_INSTRUCTION } from "./prompts";
 import { aiAnalysisSchema, type AiAnalysisJson } from "./schema";
 import { computeRVS, rvsDelta } from "./score";
 import { productContextBlock } from "@/lib/catalogue";
+import { applyEvidenceGuards, type GuardEvent } from "./evidence-guards";
 
 export type AnalyzeResult = {
   analysis: AiAnalysisJson;
@@ -21,19 +27,19 @@ export type AnalyzeResult = {
   latencyMs: number;
   modelUsed: string;
   rawOutput: string;
+  evidenceInspection: EvidenceInspection;
+  guardEvents: GuardEvent[];
 };
 
-async function fetchBlobAsBase64(url: string): Promise<GeminiInlineFile> {
-  // Handle base64 data URIs stored directly in DB (when Vercel Blob is not configured)
+async function fetchBlobAsBase64(url: string): Promise<{
+  mimeType: string;
+  base64: string;
+}> {
   if (url.startsWith("data:")) {
     const match = url.match(/^data:([^;]+);base64,(.+)$/);
-    if (match) {
-      return { mimeType: match[1], base64: match[2] };
-    }
+    if (match) return { mimeType: match[1], base64: match[2] };
     throw new Error("invalid data URI format");
   }
-
-  // Standard HTTP fetch for Vercel Blob URLs
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`failed to fetch blob ${url}: ${res.status} ${res.statusText}`);
@@ -44,7 +50,6 @@ async function fetchBlobAsBase64(url: string): Promise<GeminiInlineFile> {
 }
 
 function safeParseJson(raw: string): unknown | null {
-  // Some models still wrap JSON in ```json fences despite responseMimeType.
   const cleaned = raw
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -82,8 +87,15 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
       (d.mimeType.startsWith("image/") || d.mimeType === "application/pdf")
   );
   const files: GeminiInlineFile[] = await Promise.all(
-    eligibleDocs.map((d) => fetchBlobAsBase64(d.blobUrl))
+    eligibleDocs.map(async (d) => ({
+      ...(await fetchBlobAsBase64(d.blobUrl)),
+      docType: d.docType,
+    }))
   );
+
+  // Pre-count evidence so the prompt can warn the model up-front.
+  const preImageCount = files.filter((f) => f.mimeType.startsWith("image/")).length;
+  const prePdfCount = files.filter((f) => f.mimeType === "application/pdf").length;
 
   const userPrompt = buildUserPrompt({
     caseMetadata: {
@@ -103,19 +115,24 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
       chunkText: c.chunkText,
     })),
     productContext: productContextBlock(caseRow.productModel),
+    evidenceCounts: { imageCount: preImageCount, pdfCount: prePdfCount },
   });
 
   // 3. Call GPT-4o (with one repair retry on invalid JSON).
-  let raw = await analyzeMultimodal(SYSTEM_PROMPT, userPrompt, files);
+  let modelCall = await analyzeMultimodal(SYSTEM_PROMPT, userPrompt, files);
+  let raw = modelCall.raw;
+  let inspection = modelCall.inspection;
   let parsed = safeParseJson(raw);
   let validated = parsed ? aiAnalysisSchema.safeParse(parsed) : null;
 
   if (!validated || !validated.success) {
-    raw = await analyzeMultimodal(
+    modelCall = await analyzeMultimodal(
       SYSTEM_PROMPT,
       `${userPrompt}\n\n${REPAIR_INSTRUCTION}`,
       files
     );
+    raw = modelCall.raw;
+    inspection = modelCall.inspection;
     parsed = safeParseJson(raw);
     validated = parsed ? aiAnalysisSchema.safeParse(parsed) : null;
     if (!validated || !validated.success) {
@@ -131,7 +148,27 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
     }
   }
 
-  const analysis = validated.data;
+  // 4. APPLY EVIDENCE GUARDS — the critical anti-hallucination layer.
+  const { cleaned, events: guardEvents } = applyEvidenceGuards(validated.data, {
+    imageCount: inspection.imageCount,
+    pdfCount: inspection.pdfCount,
+    pdfCharsExtracted: inspection.pdfCharsExtracted,
+  });
+
+  // 5. Stamp provenance onto the analysis.
+  const analysis: AiAnalysisJson = {
+    ...cleaned,
+    evidence_inspected: {
+      imageCount: inspection.imageCount,
+      pdfCount: inspection.pdfCount,
+      pdfPagesRead: inspection.pdfPagesRead,
+      pdfCharsExtracted: inspection.pdfCharsExtracted,
+      scannedPdfCount: inspection.scannedPdfCount,
+      policyChunksRetrieved: chunks.length,
+      guardEvents,
+    },
+  };
+
   const rvsRecomputed = computeRVS(analysis);
   const latencyMs = Date.now() - t0;
 
@@ -142,7 +179,7 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
     score: c.score,
   }));
 
-  // 4. Persist (upsert keyed on caseId for repeat analyses).
+  // 6. Persist.
   await prisma.aiAnalysis.upsert({
     where: { caseId },
     update: {
@@ -179,5 +216,7 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
     latencyMs,
     modelUsed: FLASH_MODEL,
     rawOutput: raw,
+    evidenceInspection: inspection,
+    guardEvents,
   };
 }

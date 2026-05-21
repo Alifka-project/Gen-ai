@@ -44,6 +44,29 @@ export const recommendedActionEnum = z.enum([
 ]);
 export type RecommendedAction = z.infer<typeof recommendedActionEnum>;
 
+/** Provenance block stamped onto every analysis by the orchestrator. Tells
+ * the dashboard exactly what raw evidence the model inspected so every score
+ * can be traced back to its source (or to the absence of source). */
+export const evidenceInspectedSchema = z.object({
+  imageCount: z.number().int().min(0),
+  pdfCount: z.number().int().min(0),
+  pdfPagesRead: z.number().int().min(0),
+  pdfCharsExtracted: z.number().int().min(0),
+  scannedPdfCount: z.number().int().min(0),
+  policyChunksRetrieved: z.number().int().min(0),
+  guardEvents: z
+    .array(
+      z.object({
+        field: z.string(),
+        original: z.unknown(),
+        enforced: z.unknown(),
+        reason: z.string(),
+      })
+    )
+    .default([]),
+});
+export type EvidenceInspected = z.infer<typeof evidenceInspectedSchema>;
+
 export const aiAnalysisSchema = z.object({
   case_summary: z.string().min(1),
   complaint_analysis: z.object({
@@ -87,6 +110,9 @@ export const aiAnalysisSchema = z.object({
   replacement_validity_score: z.number().min(0).max(100),
   recommended_action: recommendedActionEnum,
   manager_summary: z.string().min(1),
+  /** Stamped by the orchestrator after evidence-guard processing. Always
+   * present on persisted analyses; optional on the raw model output. */
+  evidence_inspected: evidenceInspectedSchema.optional(),
 });
 
 export type AiAnalysisJson = z.infer<typeof aiAnalysisSchema>;
