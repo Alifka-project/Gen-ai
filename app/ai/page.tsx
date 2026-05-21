@@ -20,6 +20,8 @@ import {
   Layers,
   Activity,
   Info,
+  Fingerprint,
+  XCircle,
 } from "lucide-react";
 import {
   BarChart,
@@ -116,6 +118,41 @@ type DamageRegionInfo = {
   visible_in_images: number[];
 };
 
+type IdentityVerificationInfo = {
+  form_serial: string | null;
+  invoice_serial: string | null;
+  photo_serial: string | null;
+  serial_match: string;
+  serial_sources_count: number;
+  identity_verified: boolean;
+  identity_issues: string[];
+  identity_score: number;
+  product_match: {
+    expected_brand: string;
+    expected_type: string;
+    expected_capacity_kg: string;
+    observed_brand: string | null;
+    observed_type: string | null;
+    observed_capacity_kg: string | null;
+    brand_matches: boolean;
+    type_matches: boolean;
+    capacity_matches: boolean;
+    overall_match: boolean;
+  };
+  customer_name_match: {
+    form_name: string;
+    invoice_name: string | null;
+    matches: boolean;
+    similarity: number;
+  };
+  exif: {
+    taken_at: string | null;
+    gps_lat: number | null;
+    gps_lon: number | null;
+    camera: string | null;
+  } | null;
+};
+
 type StatsData = {
   totalAnalyses: number;
   avgLatencyMs: number;
@@ -128,6 +165,7 @@ type StatsData = {
     evidenceInspected: EvidenceInspected | null;
     multiModel: MultiModelInfo | null;
     damageRegions: DamageRegionInfo[];
+    identityVerification: IdentityVerificationInfo | null;
   })[];
   policyChunkCount: number;
   modelsUsed: string[];
@@ -154,6 +192,16 @@ type StatsData = {
     avgCriticConfidence: number;
     totalDamageRegions: number;
     casesWithDamageRegions: number;
+  };
+  identity?: {
+    casesWithIdentity: number;
+    identityVerified: number;
+    identityUnverified: number;
+    identityInsufficient: number;
+    serialMatchCount: number;
+    serialMismatchCount: number;
+    serialPartialCount: number;
+    avgIdentityScore: number;
   };
 };
 
@@ -300,6 +348,14 @@ export default function AiPipelinePage() {
             <StatPill label="Policy Chunks" value={stats.policyChunkCount.toString()} icon={<FileSearch className="size-4 text-violet-500" />} />
             <StatPill label="RVS Accuracy" value={`${stats.rvsAccuracy}%`} icon={<CheckCircle2 className="size-4 text-emerald-500" />} sub="model vs computed drift ≤20" />
           </div>
+
+          {/* ── Identity Verification ── */}
+          {stats.identity && stats.identity.casesWithIdentity > 0 ? (
+            <IdentityVerificationPanel
+              agg={stats.identity}
+              cases={stats.caseDetails}
+            />
+          ) : null}
 
           {/* ── Multi-Model Ensemble ── */}
           {stats.ensemble && stats.ensemble.multiModelCases > 0 ? (
@@ -1101,6 +1157,185 @@ function EmptyState({ label }: { label: string }) {
     <div className="py-8 text-center">
       <p className="text-sm text-slate-400">{label}</p>
     </div>
+  );
+}
+
+function IdentityVerificationPanel({
+  agg,
+  cases,
+}: {
+  agg: NonNullable<StatsData["identity"]>;
+  cases: StatsData["caseDetails"];
+}) {
+  const idCases = cases.filter((c) => c.identityVerification);
+  const verificationRate =
+    agg.casesWithIdentity > 0
+      ? Math.round((agg.identityVerified / agg.casesWithIdentity) * 100)
+      : 0;
+  return (
+    <Card className="p-5 bg-white shadow-sm border-2 border-blue-200">
+      <div className="flex items-start gap-2 mb-3">
+        <Fingerprint className="size-5 text-blue-600 mt-0.5" />
+        <div className="flex-1">
+          <h2 className="text-base font-bold text-slate-900">
+            Identity Verification — Is the Photographed Product the Item Purchased?
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5 max-w-3xl">
+            Every analysis runs a deterministic identity check against three
+            independent sources: (1) the serial typed at intake, (2) the serial
+            extracted from the invoice PDF, (3) the serial read off the
+            product sticker in the photo via vision OCR. The photographed
+            product is also matched against the catalogue entry (brand, type,
+            capacity), and EXIF metadata is extracted from the first image
+            for timestamp / GPS auditability.
+          </p>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500">
+            Cases checked
+          </p>
+          <p className="text-lg font-bold text-slate-900 tabular-nums">
+            {agg.casesWithIdentity}
+          </p>
+        </div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-emerald-700">
+            Verification rate
+          </p>
+          <p className="text-lg font-bold text-emerald-900 tabular-nums">
+            {verificationRate}%
+          </p>
+          <p className="text-[9px] text-emerald-700/80">
+            {agg.identityVerified} verified
+          </p>
+        </div>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-red-700">
+            Serial mismatch
+          </p>
+          <p className="text-lg font-bold text-red-900 tabular-nums">
+            {agg.serialMismatchCount}
+          </p>
+          <p className="text-[9px] text-red-700/80">
+            partial: {agg.serialPartialCount}
+          </p>
+        </div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-amber-700">
+            Insufficient data
+          </p>
+          <p className="text-lg font-bold text-amber-900 tabular-nums">
+            {agg.identityInsufficient}
+          </p>
+          <p className="text-[9px] text-amber-700/80">no serial / no photo</p>
+        </div>
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-blue-700">
+            Avg identity score
+          </p>
+          <p className="text-lg font-bold text-blue-900 tabular-nums">
+            {agg.avgIdentityScore}/100
+          </p>
+        </div>
+      </div>
+
+      {/* Per-case identity table */}
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="w-full text-xs">
+          <thead className="bg-slate-50 text-slate-500">
+            <tr>
+              <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Case
+              </th>
+              <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Form serial
+              </th>
+              <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Invoice serial
+              </th>
+              <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Photo serial
+              </th>
+              <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Product match
+              </th>
+              <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Identity
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {idCases.map((c) => {
+              const iv = c.identityVerification!;
+              return (
+                <tr key={c.caseId} className="hover:bg-slate-50/70">
+                  <td className="px-2.5 py-2">
+                    <p className="font-medium text-slate-900">{c.customerName}</p>
+                    <p className="text-[10px] font-mono text-slate-400">
+                      {c.productModel}
+                    </p>
+                  </td>
+                  <td className="px-2.5 py-2">
+                    <code className="text-[10px] font-mono text-slate-700">
+                      {iv.form_serial ?? "—"}
+                    </code>
+                  </td>
+                  <td className="px-2.5 py-2">
+                    <code className="text-[10px] font-mono text-slate-700">
+                      {iv.invoice_serial ?? "—"}
+                    </code>
+                  </td>
+                  <td className="px-2.5 py-2">
+                    <code className="text-[10px] font-mono text-slate-700">
+                      {iv.photo_serial ?? "—"}
+                    </code>
+                  </td>
+                  <td className="px-2.5 py-2 text-center">
+                    <span
+                      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        iv.product_match.overall_match
+                          ? "bg-emerald-100 text-emerald-800"
+                          : iv.product_match.observed_brand === null
+                            ? "bg-slate-100 text-slate-500"
+                            : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {iv.product_match.overall_match
+                        ? "✓ match"
+                        : iv.product_match.observed_brand === null
+                          ? "n/a"
+                          : "✗ mismatch"}
+                    </span>
+                  </td>
+                  <td className="px-2.5 py-2 text-center">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        iv.identity_verified
+                          ? "bg-emerald-100 text-emerald-800"
+                          : iv.serial_match === "insufficient_data"
+                            ? "bg-slate-100 text-slate-600"
+                            : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {iv.identity_verified ? (
+                        <CheckCircle2 className="size-3" />
+                      ) : iv.serial_match === "insufficient_data" ? null : (
+                        <XCircle className="size-3" />
+                      )}
+                      {iv.identity_score}/100
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 

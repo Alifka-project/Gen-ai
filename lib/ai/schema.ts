@@ -44,6 +44,63 @@ export const recommendedActionEnum = z.enum([
 ]);
 export type RecommendedAction = z.infer<typeof recommendedActionEnum>;
 
+/** Identity verification stamped by the deterministic identity-verifier
+ *  module after the AI returns. Answers "is the photographed product
+ *  actually the item the customer purchased?" with traceable checks. */
+export const identityVerificationSchema = z.object({
+  /** Serial extracted from intake form (typed by CS agent). */
+  form_serial: z.string().nullable(),
+  /** Serial extracted from invoice PDF by AI document analysis. */
+  invoice_serial: z.string().nullable(),
+  /** Serial extracted from the product sticker in the photo by AI vision. */
+  photo_serial: z.string().nullable(),
+  /** 3-way match status across the three serial sources. */
+  serial_match: z.enum(["match", "partial_match", "mismatch", "insufficient_data"]),
+  /** Number of sources where a serial was found. */
+  serial_sources_count: z.number().int().min(0).max(3),
+  /** Customer-name match between intake form and invoice. */
+  customer_name_match: z.object({
+    form_name: z.string(),
+    invoice_name: z.string().nullable(),
+    matches: z.boolean(),
+    similarity: z.number().min(0).max(100),
+  }),
+  /** Does the photographed product match the catalogue product the case
+   *  was filed for? Computed from visual_analysis.observed_product vs
+   *  the catalogue entry for case.productModel. */
+  product_match: z.object({
+    expected_brand: z.string(),
+    expected_type: z.string(),
+    expected_capacity_kg: z.string(),
+    observed_brand: z.string().nullable(),
+    observed_type: z.string().nullable(),
+    observed_capacity_kg: z.string().nullable(),
+    brand_matches: z.boolean(),
+    type_matches: z.boolean(),
+    capacity_matches: z.boolean(),
+    overall_match: z.boolean(),
+  }),
+  /** EXIF timestamp + GPS from the FIRST image (if available). */
+  exif: z
+    .object({
+      taken_at: z.string().nullable(),
+      gps_lat: z.number().nullable(),
+      gps_lon: z.number().nullable(),
+      camera: z.string().nullable(),
+      width: z.number().nullable(),
+      height: z.number().nullable(),
+    })
+    .nullable(),
+  /** Overall verdict — true only when serial_match=match AND
+   *  product_match.overall_match AND no severe issues. */
+  identity_verified: z.boolean(),
+  /** Human-readable issues for the manager UI. */
+  identity_issues: z.array(z.string()).default([]),
+  /** 0-100 score derived from the checks. */
+  identity_score: z.number().min(0).max(100),
+});
+export type IdentityVerification = z.infer<typeof identityVerificationSchema>;
+
 /** Provenance block stamped onto every analysis by the orchestrator. Tells
  * the dashboard exactly what raw evidence the model inspected so every score
  * can be traced back to its source (or to the absence of source). */
@@ -80,6 +137,9 @@ export const aiAnalysisSchema = z.object({
     damage_type: damageTypeEnum,
     evidence_quality_score: z.number().min(0).max(100),
     serial_number_visible: z.boolean(),
+    /** ACTUAL serial number text the vision model read off the product
+     *  sticker in any attached image. null when not visible / illegible. */
+    serial_number_text: z.string().nullable().default(null),
     claim_image_consistency: claimImageConsistencyEnum,
     visual_uncertainty: z.string(),
     /** Specific damage regions identified on the product. Each entry must
@@ -88,20 +148,31 @@ export const aiAnalysisSchema = z.object({
     damage_regions: z
       .array(
         z.object({
-          /** Textual location on the product, e.g. "front-left door panel",
-           *  "top-right corner", "control display", "drum interior". */
           region: z.string().min(1),
-          /** Concrete description of what is wrong in this region. */
           description: z.string().min(1),
-          /** Severity local to this region. */
           severity: severityEnum,
-          /** 1-indexed list of attached images in which this region is
-           *  visible. Empty list = the region was inferred from text and
-           *  must NOT be reported in damage_regions. */
           visible_in_images: z.array(z.number().int().positive()),
         })
       )
       .default([]),
+    /** Vision-derived description of the product visible in the photo(s).
+     *  The identity verifier compares this against the catalogue product
+     *  the case was filed for. All fields null when no image attached. */
+    observed_product: z
+      .object({
+        brand: z.string().nullable(),
+        product_type: z.string().nullable(), // "front-load washer", "top-load washer", "dryer", "washer-dryer combo"
+        approximate_capacity_kg: z.string().nullable(), // "8", "10", "10/6" — what's printed on the unit
+        color: z.string().nullable(),
+        distinguishing_features: z.array(z.string()).default([]),
+      })
+      .default({
+        brand: null,
+        product_type: null,
+        approximate_capacity_kg: null,
+        color: null,
+        distinguishing_features: [],
+      }),
   }),
   document_analysis: z.object({
     invoice_valid: z.boolean().nullable(),
@@ -133,6 +204,10 @@ export const aiAnalysisSchema = z.object({
   /** Stamped by the orchestrator after evidence-guard processing. Always
    * present on persisted analyses; optional on the raw model output. */
   evidence_inspected: evidenceInspectedSchema.optional(),
+  /** Stamped by the orchestrator from the deterministic identity verifier
+   * (lib/ai/identity-verifier.ts). Optional because legacy analyses may not
+   * have it. */
+  identity_verification: identityVerificationSchema.optional(),
   /** Multi-model ensemble metadata. Present when MULTI_MODEL_ENABLED is on
    * (default) — records the secondary analyzer's full output, the critic's
    * verdict, and the consensus report. The primary recommendation at the

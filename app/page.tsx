@@ -161,6 +161,9 @@ export default async function CasesPage() {
                     <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                       AI Recommendation
                     </th>
+                    <th className="text-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      Identity
+                    </th>
                     <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                       Decision
                     </th>
@@ -214,6 +217,30 @@ export default async function CasesPage() {
                         ) : (
                           <span className="text-slate-300 text-xs">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {(() => {
+                          if (!c.analysis) return <span className="text-slate-300 text-xs">—</span>;
+                          const iv = (c.analysis.explanationJson as { identity_verification?: { identity_verified: boolean; serial_match: string; identity_score: number } } | null)?.identity_verification;
+                          if (!iv) return <span className="text-slate-300 text-xs">—</span>;
+                          if (iv.identity_verified)
+                            return (
+                              <span className="inline-flex items-center rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold">
+                                ✓ {iv.identity_score}
+                              </span>
+                            );
+                          if (iv.serial_match === "insufficient_data")
+                            return (
+                              <span className="inline-flex items-center rounded bg-slate-100 text-slate-600 px-1.5 py-0.5 text-[10px] font-bold">
+                                — {iv.identity_score}
+                              </span>
+                            );
+                          return (
+                            <span className="inline-flex items-center rounded bg-red-100 text-red-800 px-1.5 py-0.5 text-[10px] font-bold">
+                              ✗ {iv.identity_score}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         {c.decision ? (
@@ -305,6 +332,7 @@ export default async function CasesPage() {
                       policyResult={valid?.policy_analysis.policy_result}
                       multiModel={valid?.multi_model as never}
                       evidenceInspected={valid?.evidence_inspected as never}
+                      identityVerification={valid?.identity_verification as never}
                     />
                   );
                 })}

@@ -40,6 +40,8 @@ import { applyEvidenceGuards, type GuardEvent } from "./evidence-guards";
 import { runCritic, type CriticVerdict } from "./critic";
 import { computeConsensus, type ConsensusReport } from "./consensus";
 import { AGENT_MODELS } from "./clients";
+import { verifyIdentity } from "./identity-verifier";
+import { extractExif, type ExifData } from "./exif-extract";
 
 export type AnalyzeResult = {
   analysis: AiAnalysisJson;
@@ -172,6 +174,18 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
   const preImageCount = files.filter((f) => f.mimeType.startsWith("image/")).length;
   const prePdfCount = files.filter((f) => f.mimeType === "application/pdf").length;
 
+  // Extract EXIF from the first image (used by the identity verifier).
+  let firstImageExif: ExifData | null = null;
+  const firstImage = files.find((f) => f.mimeType.startsWith("image/"));
+  if (firstImage) {
+    try {
+      const bytes = Uint8Array.from(Buffer.from(firstImage.base64, "base64"));
+      firstImageExif = extractExif(bytes, firstImage.mimeType);
+    } catch {
+      firstImageExif = null;
+    }
+  }
+
   const userPrompt = buildUserPrompt({
     caseMetadata: {
       caseId: caseRow.id,
@@ -258,6 +272,16 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
     consensus = computeConsensus(cleaned, c2);
   }
 
+  // 5b. Deterministic identity verification — does the photographed product
+  //     actually match the item the customer purchased?
+  const identityVerification = verifyIdentity({
+    analysis: cleaned,
+    formSerial: caseRow.serialNumber,
+    formCustomerName: caseRow.customerName,
+    productModel: caseRow.productModel,
+    exif: firstImageExif,
+  });
+
   let criticVerdict: CriticVerdict | null = null;
   if (multiModelEnabled) {
     try {
@@ -311,6 +335,7 @@ export async function analyzeCase(caseId: string): Promise<AnalyzeResult> {
       policyChunksRetrieved: chunks.length,
       guardEvents: consensusOverride ? [...guardEvents, consensusOverride] : guardEvents,
     },
+    identity_verification: identityVerification,
     multi_model:
       cleanedSecondary && consensus
         ? {

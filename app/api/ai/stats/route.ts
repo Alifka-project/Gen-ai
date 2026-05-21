@@ -160,6 +160,41 @@ export async function GET() {
         severity: string;
         visible_in_images: number[];
       }> = [];
+      // Identity verification (from the deterministic identity-verifier)
+      let identityVerification: {
+        form_serial: string | null;
+        invoice_serial: string | null;
+        photo_serial: string | null;
+        serial_match: string;
+        serial_sources_count: number;
+        identity_verified: boolean;
+        identity_issues: string[];
+        identity_score: number;
+        product_match: {
+          expected_brand: string;
+          expected_type: string;
+          expected_capacity_kg: string;
+          observed_brand: string | null;
+          observed_type: string | null;
+          observed_capacity_kg: string | null;
+          brand_matches: boolean;
+          type_matches: boolean;
+          capacity_matches: boolean;
+          overall_match: boolean;
+        };
+        customer_name_match: {
+          form_name: string;
+          invoice_name: string | null;
+          matches: boolean;
+          similarity: number;
+        };
+        exif: {
+          taken_at: string | null;
+          gps_lat: number | null;
+          gps_lon: number | null;
+          camera: string | null;
+        } | null;
+      } | null = null;
 
       if (parsed.success) {
         const d = parsed.data;
@@ -198,6 +233,21 @@ export async function GET() {
           };
         }
         damageRegions = d.visual_analysis.damage_regions ?? [];
+        if (d.identity_verification) {
+          identityVerification = {
+            form_serial: d.identity_verification.form_serial,
+            invoice_serial: d.identity_verification.invoice_serial,
+            photo_serial: d.identity_verification.photo_serial,
+            serial_match: d.identity_verification.serial_match,
+            serial_sources_count: d.identity_verification.serial_sources_count,
+            identity_verified: d.identity_verification.identity_verified,
+            identity_issues: d.identity_verification.identity_issues,
+            identity_score: d.identity_verification.identity_score,
+            product_match: d.identity_verification.product_match,
+            customer_name_match: d.identity_verification.customer_name_match,
+            exif: d.identity_verification.exif,
+          };
+        }
       }
 
       return {
@@ -231,6 +281,7 @@ export async function GET() {
         evidenceInspected,
         multiModel,
         damageRegions,
+        identityVerification,
       };
     });
 
@@ -267,6 +318,31 @@ export async function GET() {
       }
     }
     const avgCriticConfidence = criticCount > 0 ? Math.round(totalCriticConfidence / criticCount) : 0;
+
+    // ── Identity verification aggregates ──
+    let identityVerified = 0;
+    let identityUnverified = 0;
+    let identityInsufficient = 0;
+    let serialMatchCount = 0;
+    let serialMismatchCount = 0;
+    let serialPartialCount = 0;
+    let totalIdentityScore = 0;
+    let identityCasesCount = 0;
+    for (const cd of caseDetails) {
+      if (cd.identityVerification) {
+        identityCasesCount++;
+        totalIdentityScore += cd.identityVerification.identity_score;
+        if (cd.identityVerification.identity_verified) identityVerified++;
+        else if (cd.identityVerification.serial_match === "insufficient_data")
+          identityInsufficient++;
+        else identityUnverified++;
+        if (cd.identityVerification.serial_match === "match") serialMatchCount++;
+        else if (cd.identityVerification.serial_match === "mismatch") serialMismatchCount++;
+        else if (cd.identityVerification.serial_match === "partial_match") serialPartialCount++;
+      }
+    }
+    const avgIdentityScore =
+      identityCasesCount > 0 ? Math.round(totalIdentityScore / identityCasesCount) : 0;
 
     // ── Aggregate anti-hallucination metrics across the whole dataset ──
     let totalGuardEvents = 0;
@@ -343,6 +419,16 @@ export async function GET() {
         avgCriticConfidence,
         totalDamageRegions,
         casesWithDamageRegions,
+      },
+      identity: {
+        casesWithIdentity: identityCasesCount,
+        identityVerified,
+        identityUnverified,
+        identityInsufficient,
+        serialMatchCount,
+        serialMismatchCount,
+        serialPartialCount,
+        avgIdentityScore,
       },
     });
   } catch (e) {

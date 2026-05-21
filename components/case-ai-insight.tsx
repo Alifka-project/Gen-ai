@@ -15,6 +15,7 @@ import {
   Users,
   CheckCircle2,
   XCircle,
+  Fingerprint,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +73,43 @@ type EvidenceInspectedInfo = {
   guardEvents: GuardEvent[];
 };
 
+type IdentityVerificationInfo = {
+  form_serial: string | null;
+  invoice_serial: string | null;
+  photo_serial: string | null;
+  serial_match: "match" | "partial_match" | "mismatch" | "insufficient_data";
+  serial_sources_count: number;
+  customer_name_match: {
+    form_name: string;
+    invoice_name: string | null;
+    matches: boolean;
+    similarity: number;
+  };
+  product_match: {
+    expected_brand: string;
+    expected_type: string;
+    expected_capacity_kg: string;
+    observed_brand: string | null;
+    observed_type: string | null;
+    observed_capacity_kg: string | null;
+    brand_matches: boolean;
+    type_matches: boolean;
+    capacity_matches: boolean;
+    overall_match: boolean;
+  };
+  exif: {
+    taken_at: string | null;
+    gps_lat: number | null;
+    gps_lon: number | null;
+    camera: string | null;
+    width: number | null;
+    height: number | null;
+  } | null;
+  identity_verified: boolean;
+  identity_issues: string[];
+  identity_score: number;
+};
+
 type AiInsightProps = {
   caseId: string;
   customerName: string;
@@ -104,6 +142,7 @@ type AiInsightProps = {
   // Multi-agent ensemble
   multiModel?: MultiModelInfo;
   evidenceInspected?: EvidenceInspectedInfo;
+  identityVerification?: IdentityVerificationInfo;
 };
 
 const RVS_WEIGHTS = [
@@ -142,6 +181,7 @@ export function CaseAiInsight({
   policyResult,
   multiModel,
   evidenceInspected,
+  identityVerification,
 }: AiInsightProps) {
   const [open, setOpen] = useState(false);
 
@@ -232,6 +272,19 @@ export function CaseAiInsight({
             <Chip
               label={`Evidence: ${evidenceInspected.imageCount} img · ${evidenceInspected.pdfCount} pdf`}
               color="slate"
+            />
+          ) : null}
+          {identityVerification ? (
+            <Chip
+              label={`Identity: ${identityVerification.identity_verified ? "VERIFIED" : identityVerification.serial_match === "insufficient_data" ? "insufficient data" : "UNVERIFIED"} (${identityVerification.identity_score}/100)`}
+              color={
+                identityVerification.identity_verified
+                  ? "emerald"
+                  : identityVerification.serial_match === "mismatch" ||
+                      !identityVerification.product_match.overall_match
+                    ? "red"
+                    : "amber"
+              }
             />
           ) : null}
         </div>
@@ -507,6 +560,192 @@ export function CaseAiInsight({
             </div>
           ) : null}
 
+          {/* ── IDENTITY VERIFICATION ── */}
+          {identityVerification ? (
+            <div className="px-4 py-3">
+              <SectionHeader
+                icon={<Fingerprint className="size-3.5 text-blue-600" />}
+                label="Identity Verification — Is This Really the Item Purchased?"
+              />
+              <div
+                className={cn(
+                  "mt-2 rounded-lg border p-3",
+                  identityVerification.identity_verified
+                    ? "border-emerald-300 bg-emerald-50"
+                    : identityVerification.identity_issues.length > 0
+                      ? "border-red-300 bg-red-50"
+                      : "border-amber-300 bg-amber-50"
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    {identityVerification.identity_verified ? (
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle
+                        className={cn(
+                          "size-4 shrink-0 mt-0.5",
+                          identityVerification.identity_issues.length > 0
+                            ? "text-red-600"
+                            : "text-amber-600"
+                        )}
+                      />
+                    )}
+                    <div>
+                      <p
+                        className={cn(
+                          "text-[11px] font-bold uppercase tracking-wider",
+                          identityVerification.identity_verified
+                            ? "text-emerald-900"
+                            : identityVerification.identity_issues.length > 0
+                              ? "text-red-900"
+                              : "text-amber-900"
+                        )}
+                      >
+                        {identityVerification.identity_verified
+                          ? "Identity verified"
+                          : identityVerification.identity_issues.length === 0
+                            ? "Insufficient identity evidence"
+                            : "Identity unverified"}
+                      </p>
+                      <p className="text-[10px] text-slate-600 mt-0.5">
+                        Identity score:{" "}
+                        <strong className="tabular-nums">
+                          {identityVerification.identity_score}/100
+                        </strong>{" "}
+                        · serial match:{" "}
+                        <strong>{identityVerification.serial_match.replace(/_/g, " ")}</strong>
+                        {" "}({identityVerification.serial_sources_count}/3 sources)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Three-way serial table */}
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <SerialChip
+                    label="Form (intake)"
+                    value={identityVerification.form_serial}
+                  />
+                  <SerialChip
+                    label="Invoice (extracted)"
+                    value={identityVerification.invoice_serial}
+                  />
+                  <SerialChip
+                    label="Photo (vision OCR)"
+                    value={identityVerification.photo_serial}
+                  />
+                </div>
+
+                {/* Product match */}
+                <div className="mt-3 rounded border border-slate-200 bg-white p-2">
+                  <p className="text-[10px] font-semibold text-slate-700 mb-1">
+                    Photo product vs catalogue
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 text-[10px]">
+                    <MatchRow
+                      label="Brand"
+                      expected={identityVerification.product_match.expected_brand}
+                      observed={identityVerification.product_match.observed_brand}
+                      matches={identityVerification.product_match.brand_matches}
+                    />
+                    <MatchRow
+                      label="Type"
+                      expected={identityVerification.product_match.expected_type}
+                      observed={identityVerification.product_match.observed_type}
+                      matches={identityVerification.product_match.type_matches}
+                    />
+                    <MatchRow
+                      label="Capacity"
+                      expected={`${identityVerification.product_match.expected_capacity_kg} kg`}
+                      observed={
+                        identityVerification.product_match.observed_capacity_kg
+                          ? `${identityVerification.product_match.observed_capacity_kg} kg`
+                          : null
+                      }
+                      matches={identityVerification.product_match.capacity_matches}
+                    />
+                  </div>
+                </div>
+
+                {/* Customer name match */}
+                <div className="mt-2 rounded border border-slate-200 bg-white p-2 flex items-center justify-between text-[10px]">
+                  <span className="text-slate-600">
+                    Customer name match (form vs invoice)
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <code className="font-mono text-slate-700">
+                      {identityVerification.customer_name_match.form_name}
+                    </code>
+                    <span className="text-slate-400">vs</span>
+                    <code className="font-mono text-slate-700">
+                      {identityVerification.customer_name_match.invoice_name ?? "—"}
+                    </code>
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.5 rounded text-[9px] font-bold tabular-nums",
+                        identityVerification.customer_name_match.matches
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-red-100 text-red-800"
+                      )}
+                    >
+                      {identityVerification.customer_name_match.similarity}%
+                    </span>
+                  </span>
+                </div>
+
+                {/* EXIF */}
+                {identityVerification.exif ? (
+                  <div className="mt-2 rounded border border-slate-200 bg-white p-2 text-[10px]">
+                    <p className="text-slate-600">
+                      <strong>EXIF (first image)</strong>
+                      {identityVerification.exif.taken_at && (
+                        <>
+                          {" "}· taken{" "}
+                          <code className="font-mono">
+                            {identityVerification.exif.taken_at}
+                          </code>
+                        </>
+                      )}
+                      {identityVerification.exif.camera && (
+                        <>
+                          {" "}· camera{" "}
+                          <code className="font-mono">
+                            {identityVerification.exif.camera}
+                          </code>
+                        </>
+                      )}
+                      {identityVerification.exif.gps_lat !== null && (
+                        <>
+                          {" "}· GPS{" "}
+                          <code className="font-mono">
+                            {identityVerification.exif.gps_lat.toFixed(4)},{" "}
+                            {identityVerification.exif.gps_lon?.toFixed(4)}
+                          </code>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                ) : null}
+
+                {/* Issues */}
+                {identityVerification.identity_issues.length > 0 ? (
+                  <ul className="mt-2 space-y-1">
+                    {identityVerification.identity_issues.map((iss, i) => (
+                      <li
+                        key={i}
+                        className="text-[10px] text-red-900 flex gap-1.5"
+                      >
+                        <span className="text-red-400 shrink-0">!</span>
+                        {iss}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {/* ── DAMAGE REGIONS (vision output) ── */}
           {damageRegions.length > 0 ? (
             <div className="px-4 py-3">
@@ -769,6 +1008,67 @@ export function CaseAiInsight({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SerialChip({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div
+      className={cn(
+        "rounded border p-1.5",
+        value ? "border-slate-300 bg-white" : "border-slate-200 bg-slate-50"
+      )}
+    >
+      <p className="text-[9px] uppercase tracking-wider text-slate-500">{label}</p>
+      <p
+        className={cn(
+          "text-[10px] font-mono mt-0.5 truncate",
+          value ? "text-slate-900 font-semibold" : "text-slate-400 italic"
+        )}
+      >
+        {value ?? "not provided"}
+      </p>
+    </div>
+  );
+}
+
+function MatchRow({
+  label,
+  expected,
+  observed,
+  matches,
+}: {
+  label: string;
+  expected: string;
+  observed: string | null;
+  matches: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[9px] uppercase tracking-wider text-slate-500">{label}</p>
+      <div className="flex items-center gap-1 mt-0.5">
+        <p className="text-[10px] text-slate-700 truncate" title={expected}>
+          {expected}
+        </p>
+        <span
+          className={cn(
+            "text-[10px] font-bold shrink-0",
+            observed === null
+              ? "text-slate-300"
+              : matches
+                ? "text-emerald-600"
+                : "text-red-600"
+          )}
+        >
+          {observed === null ? "—" : matches ? "✓" : "✗"}
+        </span>
+      </div>
+      {observed && observed !== expected ? (
+        <p className="text-[9px] text-slate-500 truncate" title={observed}>
+          observed: {observed}
+        </p>
+      ) : null}
     </div>
   );
 }

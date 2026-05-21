@@ -103,6 +103,53 @@ export default async function DashboardPage() {
   const statusMap: Record<string, number> = {};
   for (const s of statusGroups) statusMap[s.status] = s._count._all;
 
+  // ── Trust & Verification aggregates (Identity + Ensemble) ──
+  let identityVerifiedCount = 0;
+  let identityMismatchCount = 0;
+  let identityInsufficientCount = 0;
+  let totalDamageRegions = 0;
+  let ensembleAgreeCount = 0;
+  let ensembleCases = 0;
+  let totalCriticConfidence = 0;
+  let criticCount = 0;
+  let totalIdentityScore = 0;
+  let identityScoreCount = 0;
+  for (const a of analyses) {
+    const ej = a.explanationJson as {
+      identity_verification?: {
+        identity_verified: boolean;
+        serial_match: string;
+        identity_score: number;
+      };
+      visual_analysis?: { damage_regions?: unknown[] };
+      multi_model?: {
+        consensus?: { actionsMatch: boolean };
+        critic?: { agrees_with_primary: boolean; confidence: number };
+      };
+    } | null;
+    if (ej?.identity_verification) {
+      identityScoreCount++;
+      totalIdentityScore += ej.identity_verification.identity_score;
+      if (ej.identity_verification.identity_verified) identityVerifiedCount++;
+      else if (ej.identity_verification.serial_match === "insufficient_data") identityInsufficientCount++;
+      else identityMismatchCount++;
+    }
+    if (Array.isArray(ej?.visual_analysis?.damage_regions)) {
+      totalDamageRegions += ej.visual_analysis.damage_regions.length;
+    }
+    if (ej?.multi_model) {
+      ensembleCases++;
+      if (ej.multi_model.consensus?.actionsMatch) ensembleAgreeCount++;
+      if (ej.multi_model.critic) {
+        criticCount++;
+        totalCriticConfidence += ej.multi_model.critic.confidence;
+      }
+    }
+  }
+  const avgIdentityScore = identityScoreCount > 0 ? Math.round(totalIdentityScore / identityScoreCount) : 0;
+  const ensembleAgreementPct = ensembleCases > 0 ? Math.round((ensembleAgreeCount / ensembleCases) * 100) : 0;
+  const avgCriticConfidence = criticCount > 0 ? Math.round(totalCriticConfidence / criticCount) : 0;
+
   const conservativeCount = Object.entries(recommendationCounts)
     .filter(([k]) => COST_SAVING_RECOMMENDATIONS.has(k))
     .reduce((sum, [, n]) => sum + n, 0);
@@ -212,6 +259,38 @@ export default async function DashboardPage() {
           value={pendingDecision.toString()}
           sub="Awaiting manager"
           icon={<Clock className="size-5 text-amber-600" />}
+          color="amber"
+        />
+      </div>
+
+      {/* Trust & Verification (Identity + Multi-Model Ensemble) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          label="Identity Verified"
+          value={`${identityVerifiedCount}/${identityScoreCount}`}
+          sub={`avg ${avgIdentityScore}/100 · ${identityMismatchCount} mismatch · ${identityInsufficientCount} insufficient`}
+          icon={<Shield className="size-5 text-blue-600" />}
+          color="blue"
+        />
+        <KPICard
+          label="Ensemble Agreement"
+          value={`${ensembleAgreementPct}%`}
+          sub={`GPT-4o + Claude same action on ${ensembleAgreeCount}/${ensembleCases} cases`}
+          icon={<CheckCircle2 className="size-5 text-violet-600" />}
+          color="violet"
+        />
+        <KPICard
+          label="Critic Confidence"
+          value={`${avgCriticConfidence}%`}
+          sub={`Independent GPT-4o reviewer agrees on ${criticCount} case(s)`}
+          icon={<Brain className="size-5 text-emerald-600" />}
+          color="emerald"
+        />
+        <KPICard
+          label="Damage Regions"
+          value={totalDamageRegions.toString()}
+          sub="Vision-detected defects across analyses"
+          icon={<Activity className="size-5 text-amber-600" />}
           color="amber"
         />
       </div>

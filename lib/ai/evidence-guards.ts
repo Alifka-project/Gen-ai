@@ -111,6 +111,39 @@ export function applyEvidenceGuards(
       });
       cleaned.visual_analysis.damage_regions = [];
     }
+    // Serial number text can only come from a visible sticker in an image.
+    if (cleaned.visual_analysis.serial_number_text !== null) {
+      events.push({
+        field: "visual_analysis.serial_number_text",
+        original: cleaned.visual_analysis.serial_number_text,
+        enforced: null,
+        reason: "no image — serial number text cannot be read",
+      });
+      cleaned.visual_analysis.serial_number_text = null;
+    }
+    // Observed product fields can only be derived from an image.
+    const op = cleaned.visual_analysis.observed_product;
+    const hadAny =
+      op.brand !== null ||
+      op.product_type !== null ||
+      op.approximate_capacity_kg !== null ||
+      op.color !== null ||
+      op.distinguishing_features.length > 0;
+    if (hadAny) {
+      events.push({
+        field: "visual_analysis.observed_product",
+        original: "non-null fields present",
+        enforced: "all null",
+        reason: "no image — observed_product cannot be derived from text",
+      });
+      cleaned.visual_analysis.observed_product = {
+        brand: null,
+        product_type: null,
+        approximate_capacity_kg: null,
+        color: null,
+        distinguishing_features: [],
+      };
+    }
   } else {
     // Image(s) attached. Drop any region whose visible_in_images is empty —
     // that's a region the model inferred without actually pointing to an
