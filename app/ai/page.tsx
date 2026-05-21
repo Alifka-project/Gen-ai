@@ -85,6 +85,37 @@ type EvidenceInspected = {
   guardEvents: GuardEvent[];
 };
 
+type MultiModelInfo = {
+  primary_model: string;
+  secondary_model: string;
+  secondary_recommendation: string;
+  secondary_score: number;
+  secondary_summary: string;
+  consensus: {
+    actionsMatch: boolean;
+    scoreDelta: number;
+    level: "high" | "medium" | "low";
+    resolution: string;
+    summary: string;
+    matchPct: number;
+  };
+  critic?: {
+    agrees_with_primary: boolean;
+    confidence: number;
+    disputed_fields: string[];
+    critique: string;
+    alternate_recommendation: string | null;
+    model_used: string;
+  };
+};
+
+type DamageRegionInfo = {
+  region: string;
+  description: string;
+  severity: string;
+  visible_in_images: number[];
+};
+
 type StatsData = {
   totalAnalyses: number;
   avgLatencyMs: number;
@@ -93,7 +124,11 @@ type StatsData = {
   maxScore: number;
   recommendationCounts: Record<string, number>;
   scoreDistribution: Array<{ range: string; count: number }>;
-  caseDetails: (CaseDetail & { evidenceInspected: EvidenceInspected | null })[];
+  caseDetails: (CaseDetail & {
+    evidenceInspected: EvidenceInspected | null;
+    multiModel: MultiModelInfo | null;
+    damageRegions: DamageRegionInfo[];
+  })[];
   policyChunkCount: number;
   modelsUsed: string[];
   avgRetrievedChunks: number;
@@ -107,6 +142,18 @@ type StatsData = {
     totalPdfCharsExtracted: number;
     totalScannedPdfs: number;
     guardEventsByField: Record<string, number>;
+  };
+  ensemble?: {
+    multiModelCases: number;
+    consensusHigh: number;
+    consensusMedium: number;
+    consensusLow: number;
+    actionsMatch: number;
+    criticAgree: number;
+    criticDispute: number;
+    avgCriticConfidence: number;
+    totalDamageRegions: number;
+    casesWithDamageRegions: number;
   };
 };
 
@@ -253,6 +300,14 @@ export default function AiPipelinePage() {
             <StatPill label="Policy Chunks" value={stats.policyChunkCount.toString()} icon={<FileSearch className="size-4 text-violet-500" />} />
             <StatPill label="RVS Accuracy" value={`${stats.rvsAccuracy}%`} icon={<CheckCircle2 className="size-4 text-emerald-500" />} sub="model vs computed drift ≤20" />
           </div>
+
+          {/* ── Multi-Model Ensemble ── */}
+          {stats.ensemble && stats.ensemble.multiModelCases > 0 ? (
+            <MultiModelEnsemblePanel
+              agg={stats.ensemble}
+              cases={stats.caseDetails}
+            />
+          ) : null}
 
           {/* ── Anti-Hallucination / Evidence Provenance ── */}
           {stats.antiHallucination ? (
@@ -1046,6 +1101,192 @@ function EmptyState({ label }: { label: string }) {
     <div className="py-8 text-center">
       <p className="text-sm text-slate-400">{label}</p>
     </div>
+  );
+}
+
+function MultiModelEnsemblePanel({
+  agg,
+  cases,
+}: {
+  agg: NonNullable<StatsData["ensemble"]>;
+  cases: StatsData["caseDetails"];
+}) {
+  const ensembleCases = cases.filter((c) => c.multiModel);
+  const agreementRate =
+    agg.multiModelCases > 0
+      ? Math.round((agg.actionsMatch / agg.multiModelCases) * 100)
+      : 0;
+  return (
+    <Card className="p-5 bg-white shadow-sm border-2 border-violet-200">
+      <div className="flex items-start gap-2 mb-3">
+        <Layers className="size-5 text-violet-600 mt-0.5" />
+        <div className="flex-1">
+          <h2 className="text-base font-bold text-slate-900">
+            Multi-Model Ensemble — Two Independent Verdicts + Critic
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5 max-w-3xl">
+            Every case runs through TWO different model families in parallel
+            (OpenAI <code className="font-mono text-[10px]">gpt-4o</code> +
+            Anthropic <code className="font-mono text-[10px]">claude-sonnet-4-5</code>).
+            A GPT-4o critic then reviews the primary&apos;s output. When the two
+            analyzers disagree, the consensus arbiter promotes the case to the
+            safer action and surfaces the dissent for manager review.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500">
+            Ensemble cases
+          </p>
+          <p className="text-lg font-bold text-slate-900 tabular-nums">
+            {agg.multiModelCases}
+          </p>
+        </div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-emerald-700">
+            Inter-model agreement
+          </p>
+          <p className="text-lg font-bold text-emerald-900 tabular-nums">
+            {agreementRate}%
+          </p>
+          <p className="text-[9px] text-emerald-700/80">
+            both models picked same action
+          </p>
+        </div>
+        <div className="rounded-lg border border-violet-200 bg-violet-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-violet-700">
+            Critic confidence
+          </p>
+          <p className="text-lg font-bold text-violet-900 tabular-nums">
+            {agg.avgCriticConfidence}%
+          </p>
+          <p className="text-[9px] text-violet-700/80">
+            agree {agg.criticAgree} · dispute {agg.criticDispute}
+          </p>
+        </div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-amber-700">
+            Consensus split
+          </p>
+          <p className="text-lg font-bold text-amber-900 tabular-nums">
+            {agg.consensusHigh}/{agg.consensusMedium}/{agg.consensusLow}
+          </p>
+          <p className="text-[9px] text-amber-700/80">high / medium / low</p>
+        </div>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-red-700">
+            Damage regions detected
+          </p>
+          <p className="text-lg font-bold text-red-900 tabular-nums">
+            {agg.totalDamageRegions}
+          </p>
+          <p className="text-[9px] text-red-700/80">
+            across {agg.casesWithDamageRegions} case(s)
+          </p>
+        </div>
+      </div>
+
+      {/* Per-case ensemble table */}
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="w-full text-xs">
+          <thead className="bg-slate-50 text-slate-500">
+            <tr>
+              <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Case
+              </th>
+              <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Primary (GPT-4o)
+              </th>
+              <th className="text-left px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Secondary (Claude Sonnet 4.5)
+              </th>
+              <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Consensus
+              </th>
+              <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Critic
+              </th>
+              <th className="text-center px-2.5 py-2 font-semibold text-[10px] uppercase tracking-wide">
+                Damage regions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {ensembleCases.map((c) => {
+              const mm = c.multiModel!;
+              return (
+                <tr key={c.caseId} className="hover:bg-slate-50/70">
+                  <td className="px-2.5 py-2">
+                    <p className="font-medium text-slate-900">
+                      {c.customerName}
+                    </p>
+                    <p className="text-[10px] font-mono text-slate-400">
+                      {c.productModel}
+                    </p>
+                  </td>
+                  <td className="px-2.5 py-2">
+                    <code className="text-[10px] font-mono bg-violet-100 text-violet-800 px-1.5 py-0.5 rounded">
+                      {c.recommendation}
+                    </code>
+                    <span className="ml-1 text-[10px] text-slate-500 tabular-nums">
+                      ({c.score})
+                    </span>
+                  </td>
+                  <td className="px-2.5 py-2">
+                    <code className="text-[10px] font-mono bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded">
+                      {mm.secondary_recommendation}
+                    </code>
+                    <span className="ml-1 text-[10px] text-slate-500 tabular-nums">
+                      ({mm.secondary_score})
+                    </span>
+                  </td>
+                  <td className="px-2.5 py-2 text-center">
+                    <span
+                      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        mm.consensus.level === "high"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : mm.consensus.level === "medium"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {mm.consensus.level} · {mm.consensus.matchPct}%
+                    </span>
+                  </td>
+                  <td className="px-2.5 py-2 text-center">
+                    {mm.critic ? (
+                      <span
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                          mm.critic.agrees_with_primary
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {mm.critic.agrees_with_primary ? "agree" : "DISPUTE"} ·{" "}
+                        {mm.critic.confidence}%
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-2.5 py-2 text-center tabular-nums">
+                    {c.damageRegions.length > 0 ? (
+                      <span className="inline-flex items-center rounded bg-red-100 text-red-800 px-1.5 py-0.5 text-[10px] font-bold">
+                        {c.damageRegions.length}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">0</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 

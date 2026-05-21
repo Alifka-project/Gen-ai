@@ -130,6 +130,36 @@ export async function GET() {
           reason: string;
         }>;
       } | null = null;
+      // Multi-model ensemble (Claude + GPT + critic)
+      let multiModel: {
+        primary_model: string;
+        secondary_model: string;
+        secondary_recommendation: string;
+        secondary_score: number;
+        secondary_summary: string;
+        consensus: {
+          actionsMatch: boolean;
+          scoreDelta: number;
+          level: string;
+          resolution: string;
+          summary: string;
+          matchPct: number;
+        };
+        critic?: {
+          agrees_with_primary: boolean;
+          confidence: number;
+          disputed_fields: string[];
+          critique: string;
+          alternate_recommendation: string | null;
+          model_used: string;
+        };
+      } | null = null;
+      let damageRegions: Array<{
+        region: string;
+        description: string;
+        severity: string;
+        visible_in_images: number[];
+      }> = [];
 
       if (parsed.success) {
         const d = parsed.data;
@@ -156,6 +186,18 @@ export async function GET() {
             guardEvents: d.evidence_inspected.guardEvents ?? [],
           };
         }
+        if (d.multi_model) {
+          multiModel = {
+            primary_model: d.multi_model.primary_model,
+            secondary_model: d.multi_model.secondary_model,
+            secondary_recommendation: d.multi_model.secondary_recommendation,
+            secondary_score: d.multi_model.secondary_score,
+            secondary_summary: d.multi_model.secondary_summary,
+            consensus: d.multi_model.consensus,
+            critic: d.multi_model.critic,
+          };
+        }
+        damageRegions = d.visual_analysis.damage_regions ?? [];
       }
 
       return {
@@ -187,8 +229,44 @@ export async function GET() {
         invoiceValid,
         warrantyStatus,
         evidenceInspected,
+        multiModel,
+        damageRegions,
       };
     });
+
+    // ── Aggregate multi-model + damage region metrics ──
+    let consensusHigh = 0;
+    let consensusMedium = 0;
+    let consensusLow = 0;
+    let actionsMatch = 0;
+    let criticAgree = 0;
+    let criticDispute = 0;
+    let totalCriticConfidence = 0;
+    let criticCount = 0;
+    let multiModelCases = 0;
+    let totalDamageRegions = 0;
+    let casesWithDamageRegions = 0;
+    for (const cd of caseDetails) {
+      if (cd.multiModel) {
+        multiModelCases++;
+        const lvl = cd.multiModel.consensus.level;
+        if (lvl === "high") consensusHigh++;
+        else if (lvl === "medium") consensusMedium++;
+        else consensusLow++;
+        if (cd.multiModel.consensus.actionsMatch) actionsMatch++;
+        if (cd.multiModel.critic) {
+          criticCount++;
+          totalCriticConfidence += cd.multiModel.critic.confidence;
+          if (cd.multiModel.critic.agrees_with_primary) criticAgree++;
+          else criticDispute++;
+        }
+      }
+      if (cd.damageRegions.length > 0) {
+        casesWithDamageRegions++;
+        totalDamageRegions += cd.damageRegions.length;
+      }
+    }
+    const avgCriticConfidence = criticCount > 0 ? Math.round(totalCriticConfidence / criticCount) : 0;
 
     // ── Aggregate anti-hallucination metrics across the whole dataset ──
     let totalGuardEvents = 0;
@@ -252,6 +330,19 @@ export async function GET() {
         totalPdfCharsExtracted,
         totalScannedPdfs,
         guardEventsByField,
+      },
+      // Multi-model ensemble aggregates (Claude + GPT + critic)
+      ensemble: {
+        multiModelCases,
+        consensusHigh,
+        consensusMedium,
+        consensusLow,
+        actionsMatch,
+        criticAgree,
+        criticDispute,
+        avgCriticConfidence,
+        totalDamageRegions,
+        casesWithDamageRegions,
       },
     });
   } catch (e) {
