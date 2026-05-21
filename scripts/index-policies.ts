@@ -2,7 +2,7 @@
 // CLI wrapper for the shared policy-indexing logic.
 // Run with: pnpm tsx scripts/index-policies.ts
 
-import "dotenv/config";
+import { config } from "dotenv"; config({ override: true });
 import { indexAllPolicies, POLICIES_DIR } from "../lib/ai/index-policies";
 import { prisma } from "../lib/db/prisma";
 

@@ -3,7 +3,7 @@
 // Run with: pnpm tsx scripts/db-test.ts
 // Requires DATABASE_URL in .env (Neon Postgres with pgvector enabled).
 
-import "dotenv/config";
+import { config } from "dotenv"; config({ override: true });
 import { prisma } from "../lib/db/prisma";
 
 async function main() {

@@ -1,30 +1,30 @@
 # ReturnGuard AI — Evaluation Report
 
-_Generated 2026-05-21T18:57:24.694Z · model: `gpt-4o` · embedding: `text-embedding-3-small`._
+_Generated 2026-05-21T19:22:19.105Z · model: `gpt-4o` · embedding: `text-embedding-3-small`._
 
 ## Aggregate metrics
 
 | Metric | Value | Target |
 | --- | ---: | ---: |
-| Recommendation agreement (exact + acceptable alternative) | **87.5%** (7/8) | ≥75% |
+| Recommendation agreement (exact + acceptable alternative) | **100.0%** (8/8) | ≥75% |
 | JSON validity rate | **100.0%** (8/8) | ≥95% |
 | Policy citation rate | **100.0%** (8/8) | 100% |
-| Avg analysis latency | **9992 ms** | <30000 |
+| Avg analysis latency | **30237 ms** | <30000 |
 | Contradictions detected on cases that expect one | **1/1** | full hit |
-| Pearson(score, expected severity rank) | **0.055** | >0.5 |
+| Pearson(score, expected severity rank) | **0.300** | >0.5 |
 
 ## Per-case results
 
 | Case | Expected | Got | Match | Score | RVS recomp | Δ | Citations | Contradictions | Latency |
 | --- | --- | --- | :-: | ---: | ---: | ---: | ---: | ---: | ---: |
-| demo-c001 | remote_troubleshooting | send_technician | ≈ | 30 | 46 | 16 | 2 | 0 | 9286ms |
-| demo-c002 | approve_replacement | request_more_evidence | ≈ | 20 | 44 | 24 | 2 | 1 | 10728ms |
-| demo-c003 | reject_request | request_more_evidence | ✗ | 20 | 44 | 24 | 2 | 1 | 7494ms |
-| demo-c004 | request_more_evidence | request_more_evidence | ✓ | 30 | 46 | 16 | 2 | 0 | 8995ms |
-| demo-c005 | request_more_evidence | request_more_evidence | ✓ | 30 | 34 | 4 | 2 | 0 | 12458ms |
-| demo-c006 | remote_troubleshooting | remote_troubleshooting | ✓ | 30 | 44 | 14 | 2 | 0 | 11003ms |
-| demo-c007 | request_more_evidence | request_more_evidence | ✓ | 20 | 45 | 25 | 3 | 1 | 7620ms |
-| demo-c008 | approve_replacement | request_more_evidence | ≈ | 30 | 46 | 16 | 2 | 1 | 12352ms |
+| demo-c001 | remote_troubleshooting | send_technician | ≈ | 30 | 46 | 16 | 2 | 0 | 35523ms |
+| demo-c002 | approve_replacement | request_more_evidence | ≈ | 25 | 44 | 19 | 2 | 1 | 32171ms |
+| demo-c003 | reject_request | reject_request | ✓ | 20 | 44 | 24 | 2 | 1 | 24112ms |
+| demo-c004 | request_more_evidence | request_more_evidence | ✓ | 30 | 46 | 16 | 2 | 0 | 33657ms |
+| demo-c005 | request_more_evidence | request_more_evidence | ✓ | 30 | 34 | 4 | 2 | 0 | 26297ms |
+| demo-c006 | remote_troubleshooting | remote_troubleshooting | ✓ | 30 | 44 | 14 | 2 | 0 | 26952ms |
+| demo-c007 | request_more_evidence | request_more_evidence | ✓ | 20 | 44 | 24 | 2 | 1 | 31971ms |
+| demo-c008 | approve_replacement | request_more_evidence | ≈ | 30 | 46 | 16 | 2 | 1 | 31211ms |
 
 ## Cost-saving estimate
 
@@ -39,28 +39,21 @@ On this 8-case run, the AI recommended a conservative path (reject / request evi
 
 - **Expected:** `remote_troubleshooting`
 - **Got:** `send_technician` (alternative)
-- **Manager summary:** The case involves a functional issue with the drying cycle of a Bosch washer-dryer. No images or documents were provided to verify the claim or warranty status. Recommend dispatching a technician to diagnose the issue as per policy guidelines.
+- **Manager summary:** The case involves a functional issue with the drying cycle of a Bosch washer-dryer. No images or documents were provided. Recommend dispatching a technician to diagnose the issue as per policy guidelines.
 
 ### demo-c002 — Bosch WGG444E0ID 9 kg washer — torn door gasket at delivery
 
 - **Expected:** `approve_replacement`
 - **Got:** `request_more_evidence` (alternative)
-- **Manager summary:** Request the customer to provide photographic evidence of the damage taken at the time of delivery or within 48 hours to proceed with the replacement request.
+- **Manager summary:** Request the customer to provide photographic evidence of the claimed damage and any supporting documents like the delivery note or invoice to proceed with the claim evaluation.
 - **Contradictions flagged:** `Customer claims photos were attached, but no images were provided.`
-
-### demo-c004 — Samsung WW10N641RBX/TL Q-Rator 10 kg — missing detergent dispenser drawer
-
-- **Expected:** `request_more_evidence`
-- **Got:** `request_more_evidence` (exact)
-- **Manager summary:** The claim of a missing detergent dispenser drawer lacks photographic evidence and invoice documentation. Recommend requesting more evidence, such as photos of the unboxing and purchase documentation, to proceed with the claim.
-
-## Failures (root-cause notes)
 
 ### demo-c003 — Samsung WW91K54E0UX/TL AddWash 9 kg — cosmetic scratch after 25 days
 
-- **Expected:** `reject_request` (alternatives: `escalate_manager`)
-- **Got:** `request_more_evidence`
-- **Possible cause:** Small cosmetic scratch reported outside the 14-day return window. Return Policy §2.3 excludes cosmetic claims after the window; not eligible for direct replacement. Goodwill cosmetic touch-up may be offered at the manager's discretion.
+- **Expected:** `reject_request`
+- **Got:** `reject_request` (exact)
+- **Manager summary:** Reject the replacement request due to lack of photographic evidence and the scratch being reported beyond the 14-day window. Consider offering a goodwill cosmetic touch-up.
+- **Contradictions flagged:** `Customer claims a scratch but no photographic evidence was provided.`
 
 ## Method
 

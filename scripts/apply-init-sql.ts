@@ -10,7 +10,7 @@
 // exist — that's intentional, so we don't silently re-create over a populated
 // database. Use scripts/reset-db.ts (if you need to wipe + replay).
 
-import "dotenv/config";
+import { config } from "dotenv"; config({ override: true });
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { neon, neonConfig } from "@neondatabase/serverless";

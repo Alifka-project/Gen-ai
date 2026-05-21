@@ -6,7 +6,7 @@
 // since the last seed, the existing AiAnalysis + ManagerDecision rows are
 // cleared (they were analyzed against the old product and would be stale).
 
-import "dotenv/config";
+import { config } from "dotenv"; config({ override: true });
 import { prisma } from "../lib/db/prisma";
 import { findProduct } from "../lib/catalogue";
 

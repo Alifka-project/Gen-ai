@@ -113,6 +113,38 @@ export const aiAnalysisSchema = z.object({
   /** Stamped by the orchestrator after evidence-guard processing. Always
    * present on persisted analyses; optional on the raw model output. */
   evidence_inspected: evidenceInspectedSchema.optional(),
+  /** Multi-model ensemble metadata. Present when MULTI_MODEL_ENABLED is on
+   * (default) — records the secondary analyzer's full output, the critic's
+   * verdict, and the consensus report. The primary recommendation at the
+   * top level still wins; multi_model is for transparency + manager review. */
+  multi_model: z
+    .object({
+      primary_model: z.string(),
+      secondary_model: z.string(),
+      secondary_recommendation: z.string(),
+      secondary_score: z.number(),
+      secondary_summary: z.string(),
+      consensus: z.object({
+        actionsMatch: z.boolean(),
+        scoreDelta: z.number(),
+        level: z.enum(["high", "medium", "low"]),
+        resolution: z.string(),
+        summary: z.string(),
+        matchPct: z.number(),
+        byField: z.record(z.string(), z.boolean()),
+      }),
+      critic: z
+        .object({
+          agrees_with_primary: z.boolean(),
+          confidence: z.number(),
+          disputed_fields: z.array(z.string()),
+          critique: z.string(),
+          alternate_recommendation: z.string().nullable(),
+          model_used: z.string(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 export type AiAnalysisJson = z.infer<typeof aiAnalysisSchema>;

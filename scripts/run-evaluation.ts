@@ -5,7 +5,7 @@
 // Run with: pnpm evaluate
 // Requires: DATABASE_URL, GEMINI_API_KEY, pgvector enabled, seed + index-policies run.
 
-import "dotenv/config";
+import { config } from "dotenv"; config({ override: true });
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { prisma } from "../lib/db/prisma";
